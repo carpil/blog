@@ -7,7 +7,8 @@ export default {
         primary: '#6F52EA',
         secondary: '#2AADAD',
         dark: '#131314',
-        'dark-light': '#23252F'
+        'dark-light': '#23252F',
+        'carpil-gray': '#3C404B'
       }
     },
   },
