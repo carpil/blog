@@ -13,11 +13,16 @@ export default function JoinNewsletter() {
     resolver: yupResolver(schema)
   })
 
-  const onSubmit = (data: {
+  const onSubmit = async (data: {
     name: string
     email: string
   }) => {
-    console.log(data)
+    const response = await fetch(`/api/newsletter.json?name=${data.name}&email=${data.email}`)
+    const json = await response.json() as { message?: string, error?: string, added: boolean }
+    if (json.error != null) {
+      alert(json.error)
+      return
+    }
   }
 
   return (
