@@ -8,7 +8,8 @@ export default {
         secondary: '#2AADAD',
         dark: '#131314',
         'dark-light': '#23252F',
-        'carpil-gray': '#3C404B'
+        'carpil-gray': '#3C404B',
+        'error': '#F84800'
       }
     },
   },
