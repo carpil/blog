@@ -1,6 +1,7 @@
 import { useForm } from "react-hook-form"
 import * as yup from 'yup'
 import { yupResolver } from '@hookform/resolvers/yup'
+import { Toaster, toast } from "sonner"
 
 const schema = yup.object().shape({
   name: yup.string().required('El nombre es requerido'),
@@ -20,9 +21,10 @@ export default function JoinNewsletter() {
     const response = await fetch(`/api/newsletter.json?name=${data.name}&email=${data.email}`)
     const json = await response.json() as { message?: string, error?: string, added: boolean }
     if (json.error != null) {
-      alert(json.error)
+      toast.error('No se ha podido suscribir, inténtalo de nuevo')
       return
     }
+    toast.success('¡Te has suscrito correctamente!')
   }
 
   return (
@@ -61,6 +63,7 @@ export default function JoinNewsletter() {
           <span className="text-white">Suscribirme</span>
         </button>
       </form>
+      <Toaster position="top-center" theme="dark" />
     </aside>
 
   )
