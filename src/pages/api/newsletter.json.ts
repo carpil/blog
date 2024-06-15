@@ -1,5 +1,5 @@
 import type { APIRoute } from "astro";
-import { addContact } from "../../services/smtp";
+import { addContact, sendWelcomeEmail } from "../../services/smtp";
 
 export const GET: APIRoute = async ({ request }) => {
   const { url } = request
@@ -21,6 +21,14 @@ export const GET: APIRoute = async ({ request }) => {
       added: false
     }))
   }
+  const welcomeEmailResponse = await sendWelcomeEmail({ name, email })
+  if (welcomeEmailResponse.error != null) {
+    return new Response(JSON.stringify({
+      error: welcomeEmailResponse.error.message,
+      added: false
+    }))
+  }
+
   return new Response(JSON.stringify({
     message: "User added to the newsletter!",
     added: true

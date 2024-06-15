@@ -9,7 +9,7 @@ const schema = yup.object().shape({
 })
 
 export default function JoinNewsletter() {
-  const { register, handleSubmit, formState: { errors } } = useForm({
+  const { register, handleSubmit, formState: { errors }, reset } = useForm({
     mode: 'onBlur',
     resolver: yupResolver(schema)
   })
@@ -25,6 +25,7 @@ export default function JoinNewsletter() {
       return
     }
     toast.success('¡Te has suscrito correctamente!')
+    reset()
   }
 
   return (
