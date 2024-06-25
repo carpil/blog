@@ -31,7 +31,7 @@ export default function JoinNewsletter() {
   return (
     <aside className="flex flex-col sm:order-1 order-2 w-full">
       <h2 className="text-white text-2xl font-bold sm:text-left text-center mt-12 mb-3">
-        ¡No te pierdas ninguna novedad!
+        ¡Acceso anticipado disponible!
       </h2>
       <form className="flex flex-col w-full sm:justify-start justify-center sm:items-start items-center">
         <label htmlFor="name" className="text-white mt-5">Tu nombre</label>
@@ -61,7 +61,7 @@ export default function JoinNewsletter() {
           onClick={handleSubmit(onSubmit)}
           type="button"
           className="bg-dark w-80 h-12 rounded-md mt-10 hover:bg-dark-light">
-          <span className="text-white">Suscribirme</span>
+          <span className="text-white">Obtener acceso anticipado</span>
         </button>
       </form>
       <Toaster position="top-center" theme="dark" />
