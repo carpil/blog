@@ -1,16 +1,12 @@
 ---
 import "@fontsource/poppins/800.css";
 import Layout from "../layouts/Layout.astro";
-import JoinNewsletter from "../components/JoinNewsletter.tsx";
 import Logo from "../components/Logo.astro";
 ---
 
-<Layout title="Carpil | A Carpooling app">
+<Layout title="Carpil | Aplicación de Carpooling en Costa Rica">
   <main class="flex flex-1 h-full w-full">
-    <section
-      class="flex items-center sm:justify-between justify-center sm:flex-row flex-col w-full"
-    >
-      <JoinNewsletter client:load />
+    <section class="flex items-center justify-center flex-col w-full">
       <Logo />
     </section>
   </main>
