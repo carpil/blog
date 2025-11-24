@@ -1,0 +1,67 @@
+---
+import Layout from "../layouts/Layout.astro";
+import { getEntry } from "astro:content";
+
+const entry = await getEntry("legal", "privacy");
+const { Content } = await entry.render();
+const { title, description, lastUpdated } = entry.data;
+
+const formattedDate = new Date(lastUpdated).toLocaleDateString("en-US", {
+  year: "numeric",
+  month: "long",
+  day: "numeric",
+});
+---
+
+<Layout title={title}>
+  <main class="py-12">
+    <article class="prose prose-invert max-w-4xl mx-auto">
+      <div class="mb-8">
+        <h1 class="text-4xl font-bold text-white mb-2">{title}</h1>
+        <p class="text-gray-400">{description}</p>
+        <p class="text-sm text-gray-500 mt-2">Last updated: {formattedDate}</p>
+      </div>
+      <div class="legal-content">
+        <Content />
+      </div>
+    </article>
+  </main>
+</Layout>
+
+<style>
+  .prose {
+    color: #e5e7eb;
+  }
+
+  .legal-content :global(h1) {
+    @apply text-3xl font-bold text-white mt-8 mb-4;
+  }
+
+  .legal-content :global(h2) {
+    @apply text-2xl font-semibold text-white mt-6 mb-3;
+  }
+
+  .legal-content :global(h3) {
+    @apply text-xl font-semibold text-gray-200 mt-5 mb-2;
+  }
+
+  .legal-content :global(p) {
+    @apply text-gray-300 mb-4 leading-relaxed;
+  }
+
+  .legal-content :global(ul) {
+    @apply list-disc list-inside mb-4 text-gray-300 space-y-2;
+  }
+
+  .legal-content :global(li) {
+    @apply ml-4;
+  }
+
+  .legal-content :global(strong) {
+    @apply text-white font-semibold;
+  }
+
+  .legal-content :global(a) {
+    @apply text-blue-400 hover:text-blue-300 underline;
+  }
+</style>
