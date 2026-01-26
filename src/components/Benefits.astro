@@ -1,0 +1,51 @@
+---
+const benefits = [
+  {
+    icon: "💰",
+    title: "Ahorro Real",
+    description: "Ahorra hasta ₡5,000 por viaje vs Uber. Comparte los costos y reduce tus gastos de transporte significativamente."
+  },
+  {
+    icon: "🔒",
+    title: "Seguridad Verificada",
+    description: "Conductores verificados con estudiantes universitarios. Todos los usuarios pasan por un proceso de verificación."
+  },
+  {
+    icon: "👥",
+    title: "Comunidad Confiable",
+    description: "Viaja con personas de tu universidad. Conecta con compañeros y construye una red de contactos mientras ahorras."
+  },
+  {
+    icon: "🌱",
+    title: "Sostenibilidad",
+    description: "Reduce tu huella de carbono compartiendo viajes. Cada viaje compartido ayuda al medio ambiente."
+  }
+];
+---
+
+<section id="beneficios" class="benefits py-20 bg-dark">
+  <div class="container mx-auto px-4">
+    <div class="text-center mb-16">
+      <h2 class="font-heading text-3xl lg:text-5xl font-bold text-white mb-4">
+        ¿Por qué elegir Carpil?
+      </h2>
+      <p class="font-body text-xl text-carpil-gray max-w-2xl mx-auto">
+        La forma más segura y económica de llegar a la universidad
+      </p>
+    </div>
+
+    <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+      {benefits.map((benefit) => (
+        <div class="benefit-card bg-dark-light p-8 rounded-xl hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
+          <div class="text-5xl mb-4">{benefit.icon}</div>
+          <h3 class="font-heading text-xl lg:text-2xl font-bold text-white mb-3">
+            {benefit.title}
+          </h3>
+          <p class="font-body text-base text-carpil-gray leading-relaxed">
+            {benefit.description}
+          </p>
+        </div>
+      ))}
+    </div>
+  </div>
+</section>

@@ -1,0 +1,94 @@
+---
+// Datos de testimonios - en producción vendrían de una API o CMS
+const testimonials = [
+  {
+    name: "María González",
+    university: "UCR",
+    text: "Ahorro más de ₡20,000 al mes. Los conductores son estudiantes verificados, me siento segura.",
+    rating: 5
+  },
+  {
+    name: "Carlos Ramírez",
+    university: "TEC",
+    text: "La mejor forma de llegar a la universidad. Rápido, barato y conoces gente nueva.",
+    rating: 5
+  },
+  {
+    name: "Ana Martínez",
+    university: "UNA",
+    text: "Increíble experiencia. Ya no gasto en Uber, ahora comparto viajes con compañeros.",
+    rating: 5
+  }
+];
+
+const stats = {
+  users: "50,000+",
+  rides: "200,000+",
+  savings: "₡500M+"
+};
+---
+
+<section class="social-proof py-20 bg-dark-light">
+  <div class="container mx-auto px-4">
+    <!-- Estadísticas -->
+    <div class="text-center mb-16">
+      <h2 class="font-heading text-3xl lg:text-5xl font-bold text-white mb-4">
+        Únete a miles de estudiantes en Costa Rica
+      </h2>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mt-12">
+        <div class="text-center">
+          <div class="font-heading text-4xl lg:text-5xl font-extrabold text-primary mb-2">
+            {stats.users}
+          </div>
+          <p class="font-body text-lg text-carpil-gray">Estudiantes activos</p>
+        </div>
+        <div class="text-center">
+          <div class="font-heading text-4xl lg:text-5xl font-extrabold text-primary mb-2">
+            {stats.rides}
+          </div>
+          <p class="font-body text-lg text-carpil-gray">Viajes completados</p>
+        </div>
+        <div class="text-center">
+          <div class="font-heading text-4xl lg:text-5xl font-extrabold text-primary mb-2">
+            {stats.savings}
+          </div>
+          <p class="font-body text-lg text-carpil-gray">Ahorrados en total</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Testimonios -->
+    <div class="mt-16">
+      <h3 class="font-heading text-2xl lg:text-3xl font-bold text-white text-center mb-12">
+        Lo que dicen nuestros usuarios
+      </h3>
+      <div class="grid md:grid-cols-3 gap-8">
+        {testimonials.map((testimonial) => (
+          <blockquote class="bg-dark rounded-xl p-6 hover:shadow-lg transition-shadow">
+            <div class="flex items-center gap-1 mb-4">
+              {Array.from({ length: testimonial.rating }).map(() => (
+                <span class="text-yellow-400 text-xl">⭐</span>
+              ))}
+            </div>
+            <p class="font-body text-base text-white mb-4 leading-relaxed">
+              "{testimonial.text}"
+            </p>
+            <footer class="flex items-center gap-3">
+              <div class="w-10 h-10 bg-primary rounded-full flex items-center justify-center text-white font-heading font-bold">
+                {testimonial.name.charAt(0)}
+              </div>
+              <div>
+                <cite class="font-body font-semibold text-white not-italic">
+                  {testimonial.name}
+                </cite>
+                <p class="font-body text-sm text-carpil-gray">
+                  {testimonial.university}
+                </p>
+              </div>
+            </footer>
+          </blockquote>
+        ))}
+      </div>
+    </div>
+  </div>
+</section>

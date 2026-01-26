@@ -1,25 +1,83 @@
-import { Resend } from 'resend'
+import { Resend, type CreateContactOptions } from 'resend'
+import type { User, UserRoleType } from '../types/user'
 
 const resend = new Resend(import.meta.env.RESEND_API_KEY)
 
-export const addContact = async ({ name, email }: {
-  name: string, email: string
-}) => {
-  const response = await resend.contacts.create({
-    email: email,
-    firstName: name.split(' ')[0],
-    lastName: name.split(' ')[1] || '',
-    unsubscribed: false,
-    audienceId: import.meta.env.GENERAL_AUDIENCE_ID,
-  })
-  return response
+export const checkContactExists = async (email: string): Promise<boolean> => {
+  try {
+    const response = await resend.contacts.get({
+      email: email
+    } as any)
+    return response.data !== null && response.error === null
+  } catch {
+    return false
+  }
 }
 
-export const sendWelcomeEmail = async ({ name, email }: {
-  name: string,
+const isValidUUID = (str: string | undefined): boolean => {
+  if (!str) return false
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+  return uuidRegex.test(str)
+}
+
+const addContactToSegments = async (email: string, segmentIds: string[]) => {
+  const results = []
+
+  for (const segmentId of segmentIds) {
+    if (!isValidUUID(segmentId)) continue
+
+    const response = await resend.contacts.segments.add({
+      email: email,
+      segmentId: segmentId
+    } as any)
+
+    results.push({ segmentId, response })
+  }
+
+  return results
+}
+
+export const addContact = async ({ firstName, lastName, email, role, weeklyUpdates }: User) => {
+  const segments: string[] = []
+
+  if (isValidUUID(import.meta.env.GENERAL_SEGMENT_ID)) {
+    segments.push(import.meta.env.GENERAL_SEGMENT_ID)
+  }
+
+  if (weeklyUpdates && isValidUUID(import.meta.env.WEEKLY_UPDATES_SEGMENT_ID)) {
+    segments.push(import.meta.env.WEEKLY_UPDATES_SEGMENT_ID)
+  }
+
+  const contactData: CreateContactOptions = {
+    email,
+    firstName,
+    lastName,
+    unsubscribed: false,
+    properties: {
+      role: role
+    },
+  }
+
+  const createResponse = await resend.contacts.create(contactData)
+
+  if (createResponse.error != null) {
+    return createResponse
+  }
+
+  if (segments.length > 0) {
+    await addContactToSegments(email, segments)
+  }
+
+  return createResponse
+}
+
+interface SendWelcomeEmailParams {
+  firstName: string
   email: string
-}) => {
-  const firstName = name.split(' ')[0]
+  role: UserRoleType
+}
+
+export const sendWelcomeEmail = async ({ firstName, email, role }: SendWelcomeEmailParams) => {
   const response = await resend.emails.send({
     from: 'Rodolfo Rojas <rodolfo@carpil.app>',
     to: [email],

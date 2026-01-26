@@ -1,31 +1,125 @@
 ---
-import "@fontsource/poppins";
+// Importar fuentes con pesos específicos
+import "@fontsource/poppins/400.css";
+import "@fontsource/poppins/700.css";
+import "@fontsource/poppins/800.css";
+import "@fontsource/inter/400.css";
+import "@fontsource/inter/500.css";
+import "@fontsource/inter/600.css";
+
 interface Props {
   title: string;
+  description?: string;
+  image?: string;
+  canonical?: string;
 }
 
-const { title } = Astro.props;
+const { 
+  title, 
+  description = 'Comparte viajes con estudiantes verificados. Ahorra hasta ₡5,000 por viaje. Únete a 50,000+ estudiantes universitarios en Costa Rica.',
+  image = '/og-image.jpg',
+  canonical 
+} = Astro.props;
+
+const siteUrl = 'https://carpil.app';
+const canonicalURL = canonical || new URL(Astro.url.pathname, siteUrl).href;
+const ogImage = image.startsWith('http') ? image : new URL(image, siteUrl).href;
+
+// Structured Data (JSON-LD)
+const structuredData = {
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  "name": "Carpil",
+  "url": siteUrl,
+  "logo": `${siteUrl}/favicon.svg`,
+  "description": description,
+  "address": {
+    "@type": "PostalAddress",
+    "addressCountry": "CR"
+  }
+};
 ---
 
-<!doctype html>
-<html lang="en">
+<!DOCTYPE html>
+<html lang="es">
   <head>
     <meta charset="UTF-8" />
-    <meta name="description" content="Astro description" />
-    <meta name="viewport" content="width=device-width" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="generator" content={Astro.generator} />
+    
+    <!-- Primary Meta Tags -->
     <title>{title}</title>
+    <meta name="title" content={title} />
+    <meta name="description" content={description} />
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content={canonicalURL} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:image" content={ogImage} />
+    <meta property="og:locale" content="es_CR" />
+    <meta property="og:site_name" content="Carpil" />
+    
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:url" content={canonicalURL} />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={ogImage} />
+    
+    <!-- Canonical URL -->
+    <link rel="canonical" href={canonicalURL} />
+    
+    <!-- Structured Data -->
+    <script type="application/ld+json" is:inline set:html={JSON.stringify(structuredData)} />
+    
+    <!-- Preload critical fonts -->
+    <link 
+      rel="preload" 
+      href="/_astro/@fontsource/poppins/files/poppins-latin-800-normal.woff2" 
+      as="font" 
+      type="font/woff2" 
+      crossorigin="anonymous" 
+    />
+    <link 
+      rel="preload" 
+      href="/_astro/@fontsource/inter/files/inter-latin-400-normal.woff2" 
+      as="font" 
+      type="font/woff2" 
+      crossorigin="anonymous" 
+    />
   </head>
-  <body>
-    <div class="max-w-6xl px-10 mx-auto h-screen">
+  <body class="antialiased scroll-smooth">
+    <main>
       <slot />
-    </div>
+    </main>
   </body>
 </html>
+
 <style is:global>
   html {
-    font-family: "Poppins", system-ui, sans-serif;
-    background: #111827;
+    font-family: "Inter", system-ui, sans-serif;
+    background: #ffffff;
+  }
+  
+  body {
+    background: #ffffff;
+    color: #131314;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    font-family: "Poppins", sans-serif;
+  }
+  
+  @font-face {
+    font-family: 'Poppins';
+    font-display: swap;
+  }
+  
+  @font-face {
+    font-family: 'Inter';
+    font-display: swap;
   }
 </style>

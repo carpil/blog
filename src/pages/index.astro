@@ -1,19 +1,28 @@
 ---
-import "@fontsource/poppins/800.css";
 import Layout from "../layouts/Layout.astro";
-import Logo from "../components/Logo.astro";
+import Header from "../components/Header.astro";
+import Hero from "../components/Hero.astro";
+import NewsletterSection from "../components/NewsletterSection.astro";
+import CountdownTimer from "../components/CountdownTimer.astro";
+import HowItWorks from "../components/HowItWorks.astro";
+import Footer from "../components/Footer.astro";
+import StickyCTA from "../components/StickyCTA.astro";
+
+const seo = {
+  title: 'Carpil - La app de carpooling para Costa Rica',
+  description: 'Conectá con conductores y pasajeros en tu ruta. Ahorrá hasta 60% en transporte y ayudá al planeta. Acceso anticipado disponible.',
+};
 ---
 
-<Layout title="Carpil | Aplicación de Carpooling en Costa Rica">
-  <main class="flex flex-1 h-full w-full">
-    <section class="flex items-center justify-center flex-col w-full">
-      <Logo />
-    </section>
-  </main>
+<Layout 
+  title={seo.title}
+  description={seo.description}
+>
+  <Header />
+  <Hero />
+  <StickyCTA />
+  <NewsletterSection />
+  <CountdownTimer />
+  <HowItWorks />
+  <Footer />
 </Layout>
-
-<style>
-  h1 {
-    font-family: "Poppins", sans-serif;
-  }
-</style>
