@@ -74,6 +74,12 @@ export default function JoinNewsletter() {
 
       setStatus('success')
       toast.success(json.message || '¡Listo! Ya estás registrado 🎉')
+      
+      // Redirect to confirmation page after showing toast
+      setTimeout(() => {
+        window.location.href = '/confirmacion'
+      }, 1500)
+      
       reset({
         firstName: '',
         lastName: '',

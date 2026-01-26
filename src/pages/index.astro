@@ -9,15 +9,13 @@ import Footer from "../components/Footer.astro";
 import StickyCTA from "../components/StickyCTA.astro";
 
 const seo = {
-  title: 'Carpil - La app de carpooling para Costa Rica',
-  description: 'Conectá con conductores y pasajeros en tu ruta. Ahorrá hasta 60% en transporte y ayudá al planeta. Acceso anticipado disponible.',
+  title: "Carpil - La app de carpooling para Costa Rica",
+  description:
+    "Conectá con conductores y pasajeros en tu ruta. Ahorrá hasta 60% en transporte y ayudá al planeta. Acceso anticipado disponible.",
 };
 ---
 
-<Layout 
-  title={seo.title}
-  description={seo.description}
->
+<Layout title={seo.title} description={seo.description}>
   <Header />
   <Hero />
   <StickyCTA />
