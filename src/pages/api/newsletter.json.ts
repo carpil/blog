@@ -1,5 +1,5 @@
 import type { APIRoute } from "astro";
-import { addContact, sendWelcomeEmail } from "../../services/smtp";
+import { addContact, getContactByEmail, updateContactSubscriptions } from "../../services/smtp";
 import { UserRole, USER_ROLES } from "../../types/user";
 import type { User, UserRoleType } from "../../types/user";
 
@@ -26,10 +26,37 @@ export const POST: APIRoute = async ({ request }) => {
     })
   }
 
+  const trimmedEmail = body.email.trim()
+  const trimmedFirstName = body.firstName.trim()
+
+  // Check if contact already exists
+  const existingContact = await getContactByEmail(trimmedEmail)
+
+  if (existingContact.data && existingContact.data.id) {
+    // Contact exists - update contact details, add to segments/topics and resend welcome email
+    await updateContactSubscriptions({
+      contactId: existingContact.data.id,
+      firstName: trimmedFirstName,
+      lastName: body.lastName.trim(),
+      role: body.role,
+      weeklyUpdates: body.weeklyUpdates ?? true,
+      email: trimmedEmail,
+    })
+
+    return new Response(JSON.stringify({
+      message: "¡Listo! Ya estás registrado 🎉",
+      added: true
+    }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' }
+    })
+  }
+
+  // Contact doesn't exist - create new contact
   const contactResponse = await addContact({
-    firstName: body.firstName.trim(),
+    firstName: trimmedFirstName,
     lastName: body.lastName.trim(),
-    email: body.email.trim(),
+    email: trimmedEmail,
     role: body.role,
     weeklyUpdates: body.weeklyUpdates ?? true
   })
