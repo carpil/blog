@@ -199,14 +199,14 @@ export default function JoinNewsletter() {
             )}
           </div>
 
-          <div className="flex items-start gap-3">
+          <div className="flex gap-3 items-center">
             <input
               type="checkbox"
               id="weeklyUpdates"
               {...register('weeklyUpdates')}
               className="mt-1 w-5 h-5 rounded border-2 border-gray-300 text-primary bg-white checked:bg-primary checked:border-primary focus:ring-2 focus:ring-primary focus:ring-offset-0 cursor-pointer accent-primary"
             />
-            <label htmlFor="weeklyUpdates" className="font-body text-sm text-dark cursor-pointer">
+            <label htmlFor="weeklyUpdates" className="font-body text-sm text-dark cursor-pointer text-center">
               Avisame del progreso cada semana
             </label>
           </div>
