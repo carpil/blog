@@ -1,11 +1,42 @@
-<footer
-  class="fixed bottom-0 flex items-center justify-center px-16 w-full left-0 right-0 mb-5"
->
-  <div class="text-carpil-gray text-sm ">
-    From 🇨🇷 by <a
-      href="https://jrodolforojas.vercel.app"
-      target="_blank"
-      class="hover:text-white">Jose Rodolfo Rojas</a
-    >
+---
+import Logo from "./Logo.astro";
+---
+
+<footer class="py-12 bg-white">
+  <div class="container mx-auto px-4">
+    <div class="flex flex-col md:flex-row items-center justify-between gap-6">
+      <!-- Logo -->
+      <div class="flex items-center gap-2">
+        <Logo width="32" height="32" class="w-8 h-8" />
+        <span class="font-heading text-xl font-bold text-dark">Carpil</span>
+      </div>
+
+      <!-- Copyright -->
+      <div class="text-carpil-gray text-sm font-body text-center">
+        © 2026 Carpil. Carpooling inteligente para Costa Rica.
+      </div>
+
+      <!-- Links -->
+      <div class="flex gap-6">
+        <a
+          href="/privacy"
+          class="text-carpil-gray hover:text-primary transition-colors font-body text-sm min-h-[44px] flex items-center"
+        >
+          Privacidad
+        </a>
+        <a
+          href="/terms"
+          class="text-carpil-gray hover:text-primary transition-colors font-body text-sm min-h-[44px] flex items-center"
+        >
+          Términos
+        </a>
+        <a
+          href="#contacto"
+          class="text-carpil-gray hover:text-primary transition-colors font-body text-sm min-h-[44px] flex items-center"
+        >
+          Contacto
+        </a>
+      </div>
+    </div>
   </div>
 </footer>

@@ -1,0 +1,75 @@
+---
+const steps = [
+  {
+    number: "1",
+    title: "Publicá o buscá",
+    description: "Compartí tu ruta diaria o encontrá rides cerca de vos en segundos."
+  },
+  {
+    number: "2",
+    title: "Conectá",
+    description: "Revisá perfiles, calificaciones y coordiná tu viaje con la comunidad."
+  },
+  {
+    number: "3",
+    title: "Viajá y ahorrá",
+    description: "Compartí gastos, reducí tu huella y llegá a tu destino de forma segura."
+  }
+];
+
+const features = [
+  {
+    icon: "🛡️",
+    text: "Perfiles verificados"
+  },
+  {
+    icon: "✅",
+    text: "Sistema de calificaciones"
+  },
+  {
+    icon: "⚡",
+    text: "Soporte 24/7"
+  }
+];
+---
+
+<section class="how-it-works py-20 bg-white">
+  <div class="container mx-auto px-4">
+    <div class="max-w-6xl mx-auto">
+      <h2 class="font-heading text-4xl lg:text-5xl font-bold text-dark text-center mb-12">
+        Cómo funciona
+      </h2>
+      
+      <!-- Steps -->
+      <div class="grid md:grid-cols-3 gap-8 mb-12">
+        {steps.map((step) => (
+          <div class="step-card bg-white rounded-2xl p-6 border border-gray-100 hover:shadow-lg transition-shadow">
+            <div class="w-16 h-16 bg-primary rounded-xl flex items-center justify-center mb-6">
+              <span class="font-heading text-3xl font-bold text-white">
+                {step.number}
+              </span>
+            </div>
+            <h3 class="font-heading text-2xl font-bold text-dark mb-3">
+              {step.title}
+            </h3>
+            <p class="font-body text-base text-carpil-gray leading-relaxed">
+              {step.description}
+            </p>
+          </div>
+        ))}
+      </div>
+      
+      <!-- Features badges -->
+      <div class="flex flex-wrap justify-center gap-4">
+        {features.map((feature) => (
+          <div class="flex items-center gap-2 px-6 py-3 bg-gray-50 border border-gray-200 rounded-xl">
+            <span class="text-2xl">{feature.icon}</span>
+            <span class="font-body text-sm font-medium text-dark">
+              {feature.text}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  </div>
+</section>

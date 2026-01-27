@@ -10,7 +10,11 @@ export default {
         'dark-light': '#23252F',
         'carpil-gray': '#3C404B',
         'error': '#F84800'
-      }
+      },
+      fontFamily: {
+        'heading': ['Poppins', 'sans-serif'],
+        'body': ['Inter', 'sans-serif'],
+      },
     },
   },
   plugins: [],

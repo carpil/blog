@@ -1,0 +1,21 @@
+---
+import Layout from "../layouts/Layout.astro";
+import Header from "../components/Header.astro";
+import Footer from "../components/Footer.astro";
+import ConfirmationSuccess from "../components/ConfirmationSuccess.astro";
+import ConfettiCelebration from "../components/ConfettiCelebration.tsx";
+
+const seo = {
+  title: "¡Bienvenido a Carpil! - Acceso Anticipado Confirmado",
+  description:
+    "Gracias por unirte al acceso anticipado. Sigue nuestras redes para estar al día con el lanzamiento.",
+  noindex: true, // Don't index this post-conversion page
+};
+---
+
+<Layout title={seo.title} description={seo.description} noindex={seo.noindex}>
+  <Header />
+  <ConfettiCelebration client:load />
+  <ConfirmationSuccess />
+  <Footer />
+</Layout>

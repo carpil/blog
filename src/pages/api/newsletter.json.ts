@@ -1,37 +1,102 @@
 import type { APIRoute } from "astro";
-import { addContact, sendWelcomeEmail } from "../../services/smtp";
+import { addContact, getContactByEmail, updateContactSubscriptions } from "../../services/smtp";
+import { UserRole, USER_ROLES } from "../../types/user";
+import type { User, UserRoleType } from "../../types/user";
 
-export const GET: APIRoute = async ({ request }) => {
-  const { url } = request
-  const searchParams = new URL(url).searchParams
-  const name = searchParams.get('name')
-  const email = searchParams.get('email')
+export const POST: APIRoute = async ({ request }) => {
+  const body = await request.json() as User
 
-  if (name == null || email == null) {
+  if (!body.firstName || !body.lastName || !body.email) {
     return new Response(JSON.stringify({
-      error: "No name or email was provided!",
+      error: "Completá todos los campos",
       added: false
-    }))
+    }), {
+      status: 400,
+      headers: { 'Content-Type': 'application/json' }
+    })
   }
 
-  const response = await addContact({ name, email })
-  if (response.error != null) {
+  if (!USER_ROLES.includes(body.role as UserRoleType)) {
     return new Response(JSON.stringify({
-      error: response.error.message,
+      error: "Seleccioná si sos pasajero o conductor",
       added: false
-    }))
+    }), {
+      status: 400,
+      headers: { 'Content-Type': 'application/json' }
+    })
   }
-  const welcomeEmailResponse = await sendWelcomeEmail({ name, email })
-  if (welcomeEmailResponse.error != null) {
+
+  const trimmedEmail = body.email.trim()
+  const trimmedFirstName = body.firstName.trim()
+
+  // Check if contact already exists
+  const existingContact = await getContactByEmail(trimmedEmail)
+
+  if (existingContact.data && existingContact.data.id) {
+    // Contact exists - update contact details, add to segments/topics and resend welcome email
+    await updateContactSubscriptions({
+      contactId: existingContact.data.id,
+      firstName: trimmedFirstName,
+      lastName: body.lastName.trim(),
+      role: body.role,
+      weeklyUpdates: body.weeklyUpdates ?? true,
+      email: trimmedEmail,
+    })
+
     return new Response(JSON.stringify({
-      error: welcomeEmailResponse.error.message,
+      message: "¡Listo! Ya estás registrado 🎉",
+      added: true
+    }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' }
+    })
+  }
+
+  // Contact doesn't exist - create new contact
+  const contactResponse = await addContact({
+    firstName: trimmedFirstName,
+    lastName: body.lastName.trim(),
+    email: trimmedEmail,
+    role: body.role,
+    weeklyUpdates: body.weeklyUpdates ?? true
+  })
+
+  if (contactResponse.error != null) {
+    const errorMessage = contactResponse.error.message || 'Error al agregar el contacto'
+
+    console.error('Resend error:', {
+      message: errorMessage,
+      error: contactResponse.error,
+      email: body.email.trim()
+    })
+
+    if (errorMessage.toLowerCase().includes('already exists') ||
+      errorMessage.toLowerCase().includes('duplicate') ||
+      errorMessage.toLowerCase().includes('ya existe') ||
+      errorMessage.toLowerCase().includes('contact already')) {
+      return new Response(JSON.stringify({
+        error: "Ya estás en la lista 🎉",
+        added: false
+      }), {
+        status: 409,
+        headers: { 'Content-Type': 'application/json' }
+      })
+    }
+
+    return new Response(JSON.stringify({
+      error: errorMessage || "Algo salió mal. Intentá de nuevo",
       added: false
-    }))
+    }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' }
+    })
   }
 
   return new Response(JSON.stringify({
-    message: "User added to the newsletter!",
+    message: "¡Listo! Ya estás registrado 🎉",
     added: true
+  }), {
+    status: 200,
+    headers: { 'Content-Type': 'application/json' }
   })
-  )
 }

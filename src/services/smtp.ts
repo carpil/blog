@@ -1,115 +1,286 @@
-import { Resend } from 'resend'
+import { Resend, type CreateContactOptions } from 'resend'
+import type { User } from '../types/user'
+
+// ============================================================================
+// Constants & Config
+// ============================================================================
 
 const resend = new Resend(import.meta.env.RESEND_API_KEY)
 
-export const addContact = async ({ name, email }: {
-  name: string, email: string
-}) => {
-  const response = await resend.contacts.create({
-    email: email,
-    firstName: name.split(' ')[0],
-    lastName: name.split(' ')[1] || '',
-    unsubscribed: false,
-    audienceId: import.meta.env.GENERAL_AUDIENCE_ID,
-  })
-  return response
+const config = {
+  segments: {
+    general: import.meta.env.GENERAL_SEGMENT_ID,
+    weeklyUpdates: import.meta.env.WEEKLY_UPDATES_SEGMENT_ID,
+  },
+  topics: {
+    weeklyUpdates: import.meta.env.WEEKLY_UPDATES_TOPIC_ID,
+  },
+} as const
+
+// ============================================================================
+// Type Definitions
+// ============================================================================
+
+interface SendWelcomeEmailParams {
+  firstName: string
+  email: string
 }
 
-export const sendWelcomeEmail = async ({ name, email }: {
-  name: string,
+interface SegmentsAndTopics {
+  segments: string[]
+  topics: string[]
+}
+
+// ============================================================================
+// Helper Functions (Private)
+// ============================================================================
+
+const isValidUUID = (str: string | undefined): boolean => {
+  if (!str) return false
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+  return uuidRegex.test(str)
+}
+
+const buildSegmentsAndTopics = (weeklyUpdates: boolean): SegmentsAndTopics => {
+  const segments: string[] = []
+  const topics: string[] = []
+
+  if (isValidUUID(config.segments.general)) {
+    segments.push(config.segments.general)
+  }
+
+  if (weeklyUpdates && isValidUUID(config.segments.weeklyUpdates)) {
+    segments.push(config.segments.weeklyUpdates)
+  }
+
+  if (weeklyUpdates && isValidUUID(config.topics.weeklyUpdates)) {
+    topics.push(config.topics.weeklyUpdates)
+  }
+
+  return { segments, topics }
+}
+
+const addContactToSegments = async (contactId: string, segmentIds: string[]): Promise<void> => {
+  for (const segmentId of segmentIds) {
+    if (!isValidUUID(segmentId)) continue
+
+    try {
+      // Resend API accepts contactId (not id) or email
+      const response = await resend.contacts.segments.add({
+        contactId: contactId,
+        segmentId: segmentId,
+      })
+
+      if (response.error) {
+        console.error('addContactToSegments error:', {
+          error: response.error,
+          contactId,
+          segmentId,
+        })
+      }
+    } catch (error) {
+      console.error('addContactToSegments error:', {
+        error,
+        contactId,
+        segmentId,
+      })
+    }
+  }
+}
+
+const addContactToTopics = async (contactId: string, topicIds: string[]): Promise<void> => {
+  const validTopics = topicIds
+    .filter((topicId) => isValidUUID(topicId))
+    .map((topicId) => ({
+      id: topicId,
+      subscription: 'opt_in' as const,
+    }))
+
+  if (validTopics.length === 0) {
+    return
+  }
+
+  try {
+    const response = await resend.contacts.topics.update({
+      id: contactId,
+      topics: validTopics,
+    })
+
+    if (response.error) {
+      console.error('addContactToTopics error:', {
+        error: response.error,
+        contactId,
+        topicIds,
+      })
+    }
+  } catch (error) {
+    console.error('addContactToTopics error:', {
+      error,
+      contactId,
+      topicIds,
+    })
+  }
+}
+
+// ============================================================================
+// Public API Functions
+// ============================================================================
+
+export const checkContactExists = async (email: string): Promise<boolean> => {
+  try {
+    const response = await resend.contacts.get({
+      email: email,
+    })
+    return response.data !== null && response.error === null
+  } catch {
+    return false
+  }
+}
+
+export const getContactByEmail = async (email: string) => {
+  try {
+    const response = await resend.contacts.get({
+      email: email,
+    })
+    if (response.data && response.error === null) {
+      return { data: response.data, error: null }
+    }
+    return { data: null, error: response.error }
+  } catch (error) {
+    return { data: null, error }
+  }
+}
+
+export const addContact = async ({ firstName, lastName, email, role, weeklyUpdates }: User) => {
+  const { segments, topics } = buildSegmentsAndTopics(weeklyUpdates)
+
+  const contactData: CreateContactOptions = {
+    email,
+    firstName,
+    lastName,
+    unsubscribed: false,
+    properties: {
+      role: role,
+    },
+  }
+
+  const createResponse = await resend.contacts.create(contactData)
+
+  if (createResponse.error != null) {
+    return createResponse
+  }
+
+  // Extract contact ID from the response
+  const contactId = createResponse.data?.id
+
+  if (!contactId) {
+    return createResponse
+  }
+
+  // Use the contact ID for segments and topics
+  if (segments.length > 0) {
+    await addContactToSegments(contactId, segments)
+  }
+
+  if (topics.length > 0) {
+    await addContactToTopics(contactId, topics)
+  }
+
+  // Send welcome email after adding contact and assigning to segments/topics
+  await sendWelcomeEmail({ firstName, email })
+
+  return createResponse
+}
+
+const updateContactDetails = async ({
+  contactId,
+  firstName,
+  lastName,
+  role,
+}: {
+  contactId: string
+  firstName: string
+  lastName: string
+  role: string
+}): Promise<void> => {
+  try {
+    const response = await resend.contacts.update({
+      id: contactId,
+      firstName,
+      lastName,
+      properties: {
+        role: role,
+      },
+    })
+
+    if (response.error) {
+      console.error('updateContactDetails error:', {
+        error: response.error,
+        contactId,
+        firstName,
+        lastName,
+        role,
+      })
+    }
+  } catch (error) {
+    console.error('updateContactDetails error:', {
+      error,
+      contactId,
+      firstName,
+      lastName,
+      role,
+    })
+  }
+}
+
+export const updateContactSubscriptions = async ({
+  contactId,
+  firstName,
+  lastName,
+  role,
+  weeklyUpdates,
+  email,
+}: {
+  contactId: string
+  firstName: string
+  lastName: string
+  role: string
+  weeklyUpdates: boolean
   email: string
 }) => {
-  const firstName = name.split(' ')[0]
+  // Update contact details first (firstName, lastName, role)
+  await updateContactDetails({
+    contactId,
+    firstName,
+    lastName,
+    role,
+  })
+
+  // Then update segments and topics
+  const { segments, topics } = buildSegmentsAndTopics(weeklyUpdates)
+
+  if (segments.length > 0) {
+    await addContactToSegments(contactId, segments)
+  }
+
+  if (topics.length > 0) {
+    await addContactToTopics(contactId, topics)
+  }
+
+  // Resend welcome email
+  await sendWelcomeEmail({ firstName, email })
+}
+
+export const sendWelcomeEmail = async ({ firstName, email }: SendWelcomeEmailParams) => {
   const response = await resend.emails.send({
-    from: 'Rodolfo Rojas <rodolfo@carpil.app>',
+    from: 'Rodolfo Rojas <jrg@carpil.app>',
     to: [email],
-    subject: '[CARPIL] ⚙️ Conociendo Carpil desde dentro ⚙️',
-    html: `
-    <html dir="ltr" lang="es">
-      <head>
-        <meta content="text/html; charset=UTF-8" http-equiv="Content-Type" />
-        <meta name="x-apple-disable-message-reformatting" />
-        <meta content="width=device-width" name="viewport" />
-        <meta content="IE=edge" http-equiv="X-UA-Compatible" />
-        <meta name="x-apple-disable-message-reformatting" />
-        <meta content="telephone=no,address=no,email=no,date=no,url=no" name="format-detection" />
-        <meta content="light" name="color-scheme" />
-        <meta content="light dark" name="supported-color-schemes" />
-      </head>
-
-      <body style="font-family:-apple-system, BlinkMacSystemFont, &#x27;Segoe UI&#x27;, &#x27;Roboto&#x27;, &#x27;Oxygen&#x27;, &#x27;Ubuntu&#x27;, &#x27;Cantarell&#x27;, &#x27;Fira Sans&#x27;, &#x27;Droid Sans&#x27;, &#x27;Helvetica Neue&#x27;, sans-serif;font-size:1.0769230769230769em;min-height:100%;line-height:155%">
-        <table align="left" width="100%" border="0" cellPadding="0" cellSpacing="0" role="presentation" style="align:left;padding-left:0px;padding-right:0px;h-padding:0px;width:auto;max-width:600px;font-family:-apple-system, BlinkMacSystemFont, &#x27;Segoe UI&#x27;, &#x27;Roboto&#x27;, &#x27;Oxygen&#x27;, &#x27;Ubuntu&#x27;, &#x27;Cantarell&#x27;, &#x27;Fira Sans&#x27;, &#x27;Droid Sans&#x27;, &#x27;Helvetica Neue&#x27;, sans-serif">
-          <tbody>
-            <tr>
-              <td>
-                <p class="" style="margin:0;padding:0;font-size:1em;padding-top:0.5em;padding-bottom:0.5em;text-align:left"><span>Hola </span>${firstName}</p>
-                <p class="" style="margin:0;padding:0;font-size:1em;padding-top:0.5em;padding-bottom:0.5em;text-align:left"><span>Si te llegó este correo es porque quieres conocer más de la aplicación que estoy construyendo y eso me alegra un montón. 🥺</span></p>
-                <p class="" style="margin:0;padding:0;font-size:1em;padding-top:0.5em;padding-bottom:0.5em;text-align:left"><span>Y quiero decirte que ahora tú también formas parte de esta aplicación. Me ayudarás aportando ideas, toma de decisiones, te mantendré informado de las cosas que voy desarrollando y próximas a salir. Y por supuesto, </span><span><strong>eres una de las primeras personas en tener acceso a la aplicación.</strong></span><span> 🚀</span></p>
-                <p class="" style="margin:0;padding:0;font-size:1em;padding-top:0.5em;padding-bottom:0.5em;text-align:left"><span>Así que </span>${firstName}<span> aquí está el acceso anticipado!🫡</span><br /></p>
-                <table align="center" width="100%" border="0" cellPadding="0" cellSpacing="0" role="presentation">
-                  <tbody style="width:100%">
-                    <tr style="width:100%">
-                      <td align="center" data-id="__react-email-column"><a class="button" href="https://app.carpil.app/login" style="line-height:100%;text-decoration:none;display:inline-block;max-width:100%;margin:0;padding:8px 12.8px 8px 12.8px;background:#131314;padding-left:0.8em;padding-right:0.8em;padding-top:0.5em;padding-bottom:0.5em;border-radius:4px;color:#ffffff;border-style:solid;width:auto;border-color:#000000;border-width:1px" target="_blank"><span><!--[if mso]><i style="letter-spacing: 12.8px;mso-font-width:-100%;mso-text-raise:12" hidden>&nbsp;</i><![endif]--></span><span style="max-width:100%;display:inline-block;line-height:120%;mso-padding-alt:0px;mso-text-raise:6px"><span>Acceso Anticipado</span></span><span><!--[if mso]><i style="letter-spacing: 12.8px;mso-font-width:-100%" hidden>&nbsp;</i><![endif]--></span></a></td>
-                    </tr>
-                  </tbody>
-                </table>
-                <p class="" style="margin:0;padding:0;font-size:1em;padding-top:0.5em;padding-bottom:0.5em;text-align:left"><span>Si no te funciona el botón te dejo el link por aquí:</span><br /><span style="color:#9333EA"><a href="https://app.carpil.app/login" rel="noopener noreferrer nofollow" style="color:#6F52EA;text-decoration:underline;text-decoration:underline;font-weight:400" target="_blank">https://app.carpil.app/login</a></span></p>
-                <p class="" style="margin:0;padding:0;font-size:1em;padding-top:0.5em;padding-bottom:0.5em;text-align:left"><br /><span>Pura vida🇨🇷,</span><br /><span>-Rodolfo Rojas</span></p>
-                <p class="" style="margin:0;padding:0;font-size:1em;padding-top:0.5em;padding-bottom:0.5em;text-align:left"><span>-CEO de Carpil (⬅️ &quot;fake it until you make it 🚀&quot;)</span></p><br />
-                <hr class="divider" style="width:100%;border:none;border-top:1px solid #eaeaea;padding-bottom:1em;border-width:2px" />
-                <table align="center" width="100%" border="0" cellPadding="0" cellSpacing="0" role="presentation">
-                  <tbody>
-                    <tr>
-                      <td>
-                        <table align="center" width="100%" border="0" cellPadding="0" cellSpacing="0" role="presentation">
-                          <tbody style="width:100%">
-                            <tr style="width:100%">
-                              <td data-id="__react-email-column"></td>
-                              <td align="center" data-id="__react-email-column" style="padding-right:8px;width:32px;box-sizing:content-box"><a href="https://www.instagram.com/jrodolforojas/" rel="noopener noreferrer" target="_blank"><img height="32" src="https://resend.com/static/email/social-instagram.png" style="display:block;outline:none;border:none;text-decoration:none" width="32" /></a></td>
-                              <td align="center" data-id="__react-email-column" style="padding-right:8px;width:32px;box-sizing:content-box"><a href="https://www.youtube.com/channel/UCoDtnpxnF6Im9YXyBJd5I1Q" rel="noopener noreferrer" target="_blank"><img height="32" src="https://resend.com/static/email/social-youtube.png" style="display:block;outline:none;border:none;text-decoration:none" width="32" /></a></td>
-                              <td data-id="__react-email-column"></td>
-                            </tr>
-                          </tbody>
-                        </table>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-                <table align="center" width="100%" border="0" cellPadding="0" cellSpacing="0" role="presentation">
-                  <tbody>
-                    <tr>
-                      <td>
-                        <table align="center" width="100%" border="0" cellPadding="0" cellSpacing="0" role="presentation">
-                          <tbody style="width:100%">
-                            <tr style="width:100%">
-                              <td data-id="__react-email-column"></td>
-                              <td data-id="__react-email-column"></td>
-                            </tr>
-                          </tbody>
-                        </table>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-                <table align="center" width="100%" class="footer" border="0" cellPadding="0" cellSpacing="0" role="presentation" style="font-size:0.8em">
-                  <tbody>
-                    <tr>
-                      <td><br />
-                        <hr class="divider" style="width:100%;border:none;border-top:1px solid #eaeaea;padding-bottom:1em;border-width:2px" />
-                        <p class="" style="margin:0;padding:0;font-size:1em;padding-top:0.5em;padding-bottom:0.5em;text-align:left"><span>You are receiving this email because you opted in via our site.</span><br /><span>Want to change how you receive these emails?</span><br /><span>You can </span><span><a href="https://unsubscribe.resend.com/?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjb250YWN0SWQiOiJmMTA5MmYyMy1iNDUzLTRlNGQtODZlMi1hMDE5ZGQ0MzVlNTYiLCJhdWRpZW5jZUlkIjoiZDViY2ExNTAtNTZiNS00ZWU3LWExMjItMmM2Nzk2OWNjMWNjIiwiYnJvYWRjYXN0SWQiOiI1YzUwNzBmYS0yMzRlLTQ0OWQtODk0OC04OTE0ZjNlZmE4OWQiLCJ0ZWFtSWQiOiI3NzhmZmMyNC00Yzc2LTQxYWEtOThmZC1jMThjODI3MjA2MWQiLCJpYXQiOjE3MTkyNjUxODQsImV4cCI6MTcyMTg1NzE4NH0.ftrkCxVRrzD1qzx-w3IOvkmVvqYXRJrC9BJUPHvZwbY" rel="noopener noreferrer nofollow" style="color:#6F52EA;text-decoration:underline;text-decoration:underline;font-weight:400" target="_blank">unsubscribe from this list</a></span><span>.</span></p>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-                <p class="" style="margin:0;padding:0;font-size:1em;padding-top:0.5em;padding-bottom:0.5em;text-align:left"></p>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </body>
-
-    </html>
-    `
+    template: {
+      id: 'welcome',
+      variables: {
+        first_name: firstName,
+      },
+    },
   })
   return response
 }

@@ -1,8 +1,85 @@
-<div
-  class="flex flex-col sm:order-2 order-1 justify-center items-center sm:justify-end"
+---
+interface Props {
+  class?: string;
+  width?: string;
+  height?: string;
+}
+
+const { class: className = "", width = "682", height = "989" } = Astro.props;
+---
+
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  width={width}
+  height={height}
+  fill="none"
+  viewBox="0 0 682 989"
+  class={className}
 >
-  <h1 class="sm:text-9xl text-8xl text-[#6F52EA] font-extrabold">Carpil</h1>
-  <h3 class="text-md text-white mt-5 text-center">
-    Viajamos juntos, ahorramos juntos.
-  </h3>
-</div>
+  <path
+    fill="url(#a)"
+    d="M206.034 246.852a163.596 163.596 0 0 1 15.263-17.407s70.619-76.411 158.005-28.857l77.584-64.004 63.21-52.145 16.935-13.99S339.843-98.47 124.851 86.823C-3.687 197.657-9.636 321.895 6.305 403.64a295.453 295.453 0 0 0 5.101 33.35c11.178 52.399 30.314 101.711 52.33 149.851a1803.293 1803.293 0 0 0 35.395 72.757c.275-69.846 4.699-139.516 17.189-205.454 15.898-84.538 46.508-162.864 89.714-207.292Z"
+  />
+  <path
+    fill="url(#b)"
+    d="M183.891 354.425c-7.917-34.581-4.678-72.093 22.143-107.573-43.206 44.428-73.816 122.754-89.82 207.292-12.49 65.938-16.935 135.608-17.19 205.454 45.369 88.232 98.914 172.681 160.038 252.403 17.84 22.754 37.362 44.342 58.426 64.61 17.063 16.744 29.341 16.255 46.72 0a460.206 460.206 0 0 0 43.27-46.108c36.809-45.761 70.647-93.497 101.335-142.955-259.065-198.792-317.703-348.37-324.922-433.123Z"
+  />
+  <path
+    fill="url(#c)"
+    d="m648.698 223.486-.889-1.68-4.784 3.907-58.532 48.296-99.135 81.803s38.634 77.134-50.932 144.166c-13.731 10.649-29.693 18.57-46.889 23.269 275.217 10.121 263.871-263.402 261.161-299.761Z"
+  />
+  <path
+    fill="url(#d)"
+    d="M648.698 223.486c2.709 36.359 14.056 309.882-261.162 299.761-68.164 17.584-120.387-35.89-120.387-35.89s-66.534-59.921-83.258-132.854c7.219 84.675 65.857 234.253 324.88 433.085a2017.1 2017.1 0 0 0 42.338-70.686c40.623-71.038 76.885-144.264 103.918-222.179 60.438-132.307 1.651-255.607-6.329-271.237Z"
+  />
+  <defs>
+    <linearGradient
+      id="a"
+      x1="-0.046"
+      x2="537.053"
+      y1="329.789"
+      y2="329.789"
+      gradientUnits="userSpaceOnUse"
+    >
+      <stop stop-color="#4330B5" />
+      <stop offset="0.8" stop-color="#664BDF" />
+      <stop offset="1" stop-color="#6F52EA" />
+    </linearGradient>
+    <linearGradient
+      id="b"
+      x1="99.025"
+      x2="508.771"
+      y1="617.925"
+      y2="617.925"
+      gradientUnits="userSpaceOnUse"
+    >
+      <stop stop-color="#6F52EA" />
+      <stop offset="0.2" stop-color="#664BDF" />
+      <stop offset="1" stop-color="#4330B5" />
+    </linearGradient>
+    <linearGradient
+      id="c"
+      x1="387.537"
+      x2="649.545"
+      y1="372.654"
+      y2="372.654"
+      gradientUnits="userSpaceOnUse"
+    >
+      <stop stop-color="#6F52EA" />
+      <stop offset="0.2" stop-color="#664BDF" />
+      <stop offset="1" stop-color="#4330B5" />
+    </linearGradient>
+    <linearGradient
+      id="d"
+      x1="183.891"
+      x2="681.954"
+      y1="505.546"
+      y2="505.546"
+      gradientUnits="userSpaceOnUse"
+    >
+      <stop stop-color="#4330B5" />
+      <stop offset="0.8" stop-color="#664BDF" />
+      <stop offset="1" stop-color="#6F52EA" />
+    </linearGradient>
+  </defs>
+</svg>

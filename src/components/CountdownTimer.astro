@@ -1,0 +1,70 @@
+---
+// Countdown timer component - se actualizará con JavaScript
+---
+
+<section class="countdown-section py-12 bg-white">
+  <div class="container mx-auto px-4">
+    <div class="max-w-2xl mx-auto">
+      <div class="bg-primary/10 border border-primary/20 rounded-2xl p-8 text-center">
+        <h3 class="font-heading text-lg font-bold text-dark mb-6">
+          LANZAMIENTO EN:
+        </h3>
+        <div class="flex items-center justify-center gap-4">
+          <div class="flex flex-col items-center">
+            <div class="font-heading text-5xl lg:text-6xl font-extrabold text-primary mb-2 countdown-days">
+              30
+            </div>
+            <div class="font-body text-sm text-dark">días</div>
+          </div>
+          <div class="font-heading text-5xl lg:text-6xl font-extrabold text-primary">
+            :
+          </div>
+          <div class="flex flex-col items-center">
+            <div class="font-heading text-5xl lg:text-6xl font-extrabold text-primary mb-2 countdown-hours">
+              00
+            </div>
+            <div class="font-body text-sm text-dark">horas</div>
+          </div>
+          <div class="font-heading text-5xl lg:text-6xl font-extrabold text-primary">
+            :
+          </div>
+          <div class="flex flex-col items-center">
+            <div class="font-heading text-5xl lg:text-6xl font-extrabold text-primary mb-2 countdown-minutes">
+              00
+            </div>
+            <div class="font-body text-sm text-dark">min</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+  function updateCountdown() {
+    const targetDate = new Date()
+    targetDate.setDate(targetDate.getDate() + 30)
+    const now = new Date()
+    const diff = targetDate.getTime() - now.getTime()
+    
+    if (diff > 0) {
+      const days = Math.floor(diff / (1000 * 60 * 60 * 24))
+      const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60))
+      
+      const daysEl = document.querySelector('.countdown-days')
+      const hoursEl = document.querySelector('.countdown-hours')
+      const minutesEl = document.querySelector('.countdown-minutes')
+      
+      if (daysEl) daysEl.textContent = days.toString().padStart(2, '0')
+      if (hoursEl) hoursEl.textContent = hours.toString().padStart(2, '0')
+      if (minutesEl) minutesEl.textContent = minutes.toString().padStart(2, '0')
+    }
+  }
+  
+  // Actualizar inmediatamente
+  updateCountdown()
+  
+  // Actualizar cada minuto
+  setInterval(updateCountdown, 60000)
+</script>
