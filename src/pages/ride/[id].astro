@@ -1,0 +1,453 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import { getRide } from "../../lib/api";
+import Logo from "../../components/Logo.astro";
+
+const { id } = Astro.params;
+const ride = await getRide(id!);
+
+console.log('ride', ride)
+
+
+function getInitials(name: string): string {
+  return name
+    .split(" ")
+    .slice(0, 2)
+    .map((n) => n[0])
+    .join("")
+    .toUpperCase();
+}
+
+function formatDateShort(iso: string): string {
+  return new Date(iso).toLocaleDateString("es-CR", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+  });
+}
+
+function formatTime(iso: string): string {
+  return new Date(iso).toLocaleTimeString("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  });
+}
+
+function formatDate(iso: string): string {
+  return new Date(iso).toLocaleDateString("es-CR", {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+}
+
+const title = ride
+  ? `${ride.origin?.name.primary} → ${ride.destination?.name.primary} — Carpil`
+  : "Viaje no encontrado — Carpil";
+
+const description = ride
+  ? `Viaje de ${ride.origin?.name.primary} a ${ride.destination?.name.primary} el ${formatDate(ride.departureDate)}. ₡${ride.price.toLocaleString("es-CR")}`
+  : "Este viaje no existe o fue eliminado.";
+---
+
+<Layout title={title} description={description} noindex={true}>
+  <div class="page-bg min-h-screen flex flex-col items-center px-4 pb-10">
+
+    <!-- Header -->
+    <header class="w-full max-w-[420px] pt-8 pb-6">
+      <a href="/" class="flex items-center gap-2 w-fit">
+        <Logo width="32" height="32" />
+        <span class="header-title">Carpil</span>
+      </a>
+    </header>
+
+    <div class="w-full max-w-[420px] flex flex-col gap-4">
+
+      {ride ? (
+        <>
+          <!-- Main route card -->
+          <div class="ride-card p-6 flex flex-col gap-5">
+
+            <!-- Origin → Destination -->
+            <div class="flex items-start justify-between gap-3">
+              <div class="flex-1">
+                <p class="chip-label">ORIGEN</p>
+                <p class="place-name">{ride.origin?.name.primary}</p>
+              </div>
+              <div class="arrow-wrap">
+                <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                  <path d="M3 9h12M11 5l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </div>
+              <div class="flex-1 text-right">
+                <p class="chip-label">DESTINO</p>
+                <p class="place-name">{ride.destination?.name.primary}</p>
+              </div>
+            </div>
+
+            <!-- Date / Time / Seats chips -->
+            <div class="flex flex-wrap gap-2">
+              <div class="chip">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                  <rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" stroke-width="1.8"/>
+                  <path d="M16 2v4M8 2v4M3 10h18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                </svg>
+                {formatDateShort(ride.departureDate)}
+              </div>
+              <div class="chip">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                  <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.8"/>
+                  <path d="M12 7v5l3 3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                {formatTime(ride.departureDate)}
+              </div>
+              <div class="chip chip-purple">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                  <path d="M12 3c-1.2 0-2 .9-2 2s.8 2 2 2 2-.9 2-2-.8-2-2-2zM6 19l1-6h10l1 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M9 13v-2h6v2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                </svg>
+                {ride.availableSeats} disponibles
+              </div>
+            </div>
+
+            <!-- Divider -->
+            <div class="divider"></div>
+
+            <!-- Price -->
+            <div class="flex items-center justify-between">
+              <p class="price-label">Precio por asiento</p>
+              <p class="price">₡{ride.price.toLocaleString("es-CR")}</p>
+            </div>
+
+          </div>
+
+          <!-- Driver card -->
+          <div class="ride-card p-5 flex items-center gap-4">
+            <div class="avatar-wrap">
+              {ride.driver.profilePicture ? (
+                <img
+                  src={ride.driver.profilePicture}
+                  alt={ride.driver.name}
+                  class="avatar-img"
+                  width={56}
+                  height={56}
+                />
+              ) : (
+                <div class="avatar">{getInitials(ride.driver.name)}</div>
+              )}
+              <div class="verified-badge">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none">
+                  <path d="M5 13l4 4L19 7" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </div>
+            </div>
+
+            <div class="flex-1">
+              <p class="driver-name">{ride.driver.name}</p>
+              <div class="driver-meta">
+                {ride.driver.rating != null && (
+                  <span class="rating">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="#f59e0b">
+                      <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                    </svg>
+                    {ride.driver.rating}
+                  </span>
+                )}
+                <span class="verified-text">• Conductor Verificado</span>
+              </div>
+            </div>
+
+            <a href={ride.driver.phone ? `https://wa.me/506${ride.driver.phone}` : "/"} target="_blank" rel="noopener noreferrer" class="chat-btn" aria-label="Mensaje">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </a>
+          </div>
+
+          <!-- CTA -->
+          <a
+            href={ride.driver.phone ? `https://wa.me/506${ride.driver.phone}` : "/"}
+            class="join-btn"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Unirme al viaje
+          </a>
+
+          <p class="text-center text-sm footer-link">
+            <a href="/" class="footer-link-a">¿Qué es Carpil?</a>
+          </p>
+        </>
+      ) : (
+        <!-- Not found -->
+        <div class="ride-card flex flex-col items-center gap-5 p-10 text-center">
+          <div class="not-found-icon">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
+              <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.8"/>
+              <path d="M12 8v4M12 16h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <div>
+            <h1 class="not-found-title">Viaje no encontrado</h1>
+            <p class="not-found-sub">Este viaje no existe o fue eliminado por el conductor.</p>
+          </div>
+          <a href="/" class="back-btn">Volver al inicio</a>
+        </div>
+      )}
+
+    </div>
+  </div>
+</Layout>
+
+<style>
+  .page-bg {
+    background: #0d0d14;
+    font-family: "Inter", system-ui, sans-serif;
+  }
+
+  /* Header */
+  .header-title {
+    font-family: "Poppins", sans-serif;
+    font-size: 22px;
+    font-weight: 700;
+    color: #f0f0f8;
+  }
+
+  /* Card */
+  .ride-card {
+    background: #16161f;
+    border: 1px solid #1e1e2e;
+    border-radius: 20px;
+  }
+
+  /* Route */
+  .chip-label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    color: #55566a;
+    margin-bottom: 4px;
+  }
+
+  .place-name {
+    font-family: "Poppins", sans-serif;
+    font-size: 18px;
+    font-weight: 700;
+    color: #f0f0f8;
+    line-height: 1.2;
+  }
+
+  .arrow-wrap {
+    color: #6f52ea;
+    margin-top: 18px;
+    flex-shrink: 0;
+  }
+
+  /* Chips */
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: #1e1e2e;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 500;
+    color: #c8c8e0;
+  }
+
+  .chip-purple {
+    background: rgba(111, 82, 234, 0.15);
+    color: #a78bfa;
+  }
+
+  /* Divider */
+  .divider {
+    border-top: 1px solid #1e1e2e;
+  }
+
+  /* Price */
+  .price-label {
+    font-size: 13px;
+    color: #55566a;
+  }
+
+  .price {
+    font-family: "Poppins", sans-serif;
+    font-size: 28px;
+    font-weight: 800;
+    color: #7c5cf6;
+  }
+
+  /* Driver */
+  .avatar-wrap {
+    position: relative;
+    flex-shrink: 0;
+  }
+
+  .avatar-img {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    object-fit: cover;
+    display: block;
+  }
+
+  .avatar {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #6f52ea, #a78bfa);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: "Poppins", sans-serif;
+    font-weight: 700;
+    font-size: 18px;
+    color: #fff;
+  }
+
+  .verified-badge {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #1a8cff;
+    border: 2px solid #16161f;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .driver-name {
+    font-family: "Poppins", sans-serif;
+    font-size: 17px;
+    font-weight: 700;
+    color: #f0f0f8;
+    margin-bottom: 3px;
+  }
+
+  .driver-meta {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-wrap: wrap;
+  }
+
+  .rating {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #f0f0f8;
+  }
+
+  .verified-text {
+    font-size: 13px;
+    color: #55566a;
+  }
+
+  .chat-btn {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    background: #1e1e2e;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #a78bfa;
+    flex-shrink: 0;
+    transition: background 0.2s;
+  }
+
+  .chat-btn:hover {
+    background: #252535;
+  }
+
+  /* CTA */
+  .join-btn {
+    display: block;
+    width: 100%;
+    padding: 18px;
+    background: #6f52ea;
+    color: #fff;
+    font-family: "Poppins", sans-serif;
+    font-size: 16px;
+    font-weight: 600;
+    text-align: center;
+    border-radius: 16px;
+    text-decoration: none;
+    transition: background 0.2s, transform 0.1s;
+    margin-top: 4px;
+  }
+
+  .join-btn:hover {
+    background: #5a3fd6;
+  }
+
+  .join-btn:active {
+    transform: scale(0.98);
+  }
+
+  /* Footer */
+  .footer-link-a {
+    font-size: 14px;
+    color: #55566a;
+    text-decoration: none;
+    transition: color 0.2s;
+  }
+
+  .footer-link-a:hover {
+    color: #a78bfa;
+  }
+
+  /* Not found */
+  .not-found-icon {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: #1e1e2e;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #55566a;
+  }
+
+  .not-found-title {
+    font-family: "Poppins", sans-serif;
+    font-size: 20px;
+    font-weight: 700;
+    color: #f0f0f8;
+    margin-bottom: 8px;
+  }
+
+  .not-found-sub {
+    font-size: 14px;
+    color: #55566a;
+    line-height: 1.6;
+  }
+
+  .back-btn {
+    display: inline-block;
+    padding: 12px 24px;
+    background: #1e1e2e;
+    color: #a78bfa;
+    font-family: "Poppins", sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    border-radius: 12px;
+    text-decoration: none;
+    transition: background 0.2s;
+  }
+
+  .back-btn:hover {
+    background: #252535;
+  }
+</style>
