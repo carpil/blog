@@ -52,3 +52,57 @@ All commands are run from the root of the project, from a terminal:
 ## 👀 Want to learn more?
 
 Feel free to check [our documentation](https://docs.astro.build) or jump into our [Discord server](https://astro.build/chat).
+
+---
+
+## 🚗 Public Ride Link (`/ride/[id]`)
+
+**File:** `src/pages/ride/[id].astro`
+
+This is a shareable public page that displays the details of a specific ride. It is intended to be shared with potential passengers so they can see the ride info and contact the driver.
+
+### Route
+
+```
+/ride/:id
+```
+
+The `:id` parameter is the ride's unique identifier, as returned by the backend API.
+
+### Data Fetching
+
+The page calls `getRide(id)` from `src/lib/api.ts`, which fetches:
+
+```
+GET {API_URL}/rides/drivers/:id
+```
+
+The `API_URL` environment variable must be set (via `.env` or your deployment environment).
+
+### Page Sections
+
+**When the ride is found:**
+
+| Section | Description |
+| :------ | :---------- |
+| **Route card** | Shows origin → destination, departure date, departure time, and available seats |
+| **Driver card** | Shows driver name, profile picture (or initials avatar), rating, verified badge, and a WhatsApp message button |
+| **CTA button** | "Unirme al viaje" — links to `https://wa.me/506{driver.phone}` to contact the driver via WhatsApp |
+| **Footer** | Link back to the homepage ("¿Qué es Carpil?") |
+
+**When the ride is not found (or deleted):**
+
+Displays a "Viaje no encontrado" card with a "Volver al inicio" button that takes the user back to the homepage.
+
+### Key Behaviors
+
+- **SEO**: The page uses `noindex` — it is not meant to be indexed by search engines, only accessed via direct share link.
+- **Locale**: Dates and times are formatted in `es-CR` (Spanish, Costa Rica). Prices are shown in Costa Rican colones (₡).
+- **WhatsApp integration**: Both the driver card chat button and the "Unirme al viaje" CTA link to `https://wa.me/506{phone}` using the driver's phone number. If the driver has no phone number, the link falls back to `/`.
+- **Driver avatar fallback**: If the driver has no profile picture, a colored avatar with the driver's initials (up to 2 words) is shown instead.
+
+### Environment Variables
+
+| Variable | Description |
+| :------- | :---------- |
+| `API_URL` | Base URL of the backend API (e.g. `https://api.carpil.com`) |
