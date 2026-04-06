@@ -15,6 +15,7 @@ export interface Driver {
   name: string;
   profilePicture?: string;
   phone?: string;
+  rating?: number;
 }
 
 export interface Ride {
