@@ -14,7 +14,7 @@ jobs:
   claude:
     if: >-
       (github.event_name == 'issues' && github.event.label.name == 'claude' && 
-       contains(fromJson('["mlr"]'), github.event.sender.login)) ||
+       contains(fromJson('["mlr","robertram","jrodolforojas"]'), github.event.sender.login)) ||
       (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@claude') && 
        contains(fromJson('["OWNER", "MEMBER"]'), github.event.comment.author_association)) ||
       (github.event_name == 'pull_request_review' && contains(github.event.review.body, '@claude') && 
