@@ -50,9 +50,18 @@ const title = ride
 const description = ride
   ? `Viaje de ${ride.origin?.name.primary} a ${ride.destination?.name.primary} el ${formatDate(ride.departureDate)}. ₡${ride.price.toLocaleString("es-CR")}`
   : "Este viaje no existe o fue eliminado.";
+
+const ogImage = ride
+  ? new URL(`/api/og/ride/${id}.png`, Astro.url.origin).href
+  : undefined;
 ---
 
-<Layout title={title} description={description} noindex={true}>
+<Layout
+  title={title}
+  description={description}
+  image={ogImage}
+  noindex={true}
+>
   <div class="page-bg min-h-screen flex flex-col items-center px-4 pb-10">
 
     <!-- Header -->
