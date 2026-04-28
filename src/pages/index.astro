@@ -2,11 +2,8 @@
 import Layout from "../layouts/Layout.astro";
 import Header from "../components/Header.astro";
 import Hero from "../components/Hero.astro";
-import NewsletterSection from "../components/NewsletterSection.astro";
-import CountdownTimer from "../components/CountdownTimer.astro";
 import HowItWorks from "../components/HowItWorks.astro";
 import Footer from "../components/Footer.astro";
-import StickyCTA from "../components/StickyCTA.astro";
 
 
 const seo = {
@@ -19,9 +16,6 @@ const seo = {
 <Layout title={seo.title} description={seo.description}>
   <Header />
   <Hero />
-  <StickyCTA />
-  <NewsletterSection />
-  <CountdownTimer />
   <HowItWorks />
   <Footer />
 </Layout>

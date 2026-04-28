@@ -284,3 +284,18 @@ export const sendWelcomeEmail = async ({ firstName, email }: SendWelcomeEmailPar
   })
   return response
 }
+
+export const sendAndroidBetaEmail = async ({ firstName, email }: SendWelcomeEmailParams) => {
+  const response = await resend.emails.send({
+    from: 'Rodolfo Rojas <jrg@carpil.app>',
+    to: [email],
+    subject: '¡Ya podés descargar Carpil en Android!',
+    html: `<p>Hola ${firstName},</p>
+<p>¡Tu acceso a la beta de Carpil para Android está listo!</p>
+<p>Seguí estos dos pasos:</p>
+<p><strong>1.</strong> <a href="https://groups.google.com/g/carpil-beta">Unite al grupo de beta testers</a></p>
+<p><strong>2.</strong> <a href="https://play.google.com/apps/testing/com.carpil.carpil">Instalá la app desde Google Play</a></p>
+<p>En unos minutos de unirte al grupo, la app va a aparecer disponible en tu Play Store.</p>`,
+  })
+  return response
+}

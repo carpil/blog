@@ -1,10 +1,11 @@
 import type { APIRoute } from "astro";
-import { addContact, getContactByEmail, updateContactSubscriptions } from "../../services/smtp";
+import { addContact, getContactByEmail, updateContactSubscriptions, sendAndroidBetaEmail } from "../../services/smtp";
 import { UserRole, USER_ROLES } from "../../types/user";
 import type { User, UserRoleType } from "../../types/user";
 
 export const POST: APIRoute = async ({ request }) => {
-  const body = await request.json() as User
+  const body = await request.json() as User & { platform?: string }
+  const isAndroid = body.platform === 'android'
 
   if (!body.firstName || !body.lastName || !body.email) {
     return new Response(JSON.stringify({
@@ -33,7 +34,6 @@ export const POST: APIRoute = async ({ request }) => {
   const existingContact = await getContactByEmail(trimmedEmail)
 
   if (existingContact.data && existingContact.data.id) {
-    // Contact exists - update contact details, add to segments/topics and resend welcome email
     await updateContactSubscriptions({
       contactId: existingContact.data.id,
       firstName: trimmedFirstName,
@@ -42,6 +42,11 @@ export const POST: APIRoute = async ({ request }) => {
       weeklyUpdates: body.weeklyUpdates ?? true,
       email: trimmedEmail,
     })
+
+    if (isAndroid) {
+      sendAndroidBetaEmail({ firstName: trimmedFirstName, email: trimmedEmail })
+        .catch((err) => console.error('Android beta email error:', err))
+    }
 
     return new Response(JSON.stringify({
       message: "¡Listo! Ya estás registrado 🎉",
@@ -60,6 +65,13 @@ export const POST: APIRoute = async ({ request }) => {
     role: body.role,
     weeklyUpdates: body.weeklyUpdates ?? true
   })
+
+  if (contactResponse.error == null) {
+    if (isAndroid) {
+      sendAndroidBetaEmail({ firstName: trimmedFirstName, email: trimmedEmail })
+        .catch((err) => console.error('Android beta email error:', err))
+    }
+  }
 
   if (contactResponse.error != null) {
     const errorMessage = contactResponse.error.message || 'Error al agregar el contacto'
