@@ -22,14 +22,16 @@ function formatDate(iso: string): string {
     weekday: "short",
     day: "numeric",
     month: "short",
+    timeZone: "America/Costa_Rica",
   });
 }
 
 function formatTime(iso: string): string {
-  return new Date(iso).toLocaleTimeString("en-US", {
+  return new Date(iso).toLocaleTimeString("es-CR", {
     hour: "numeric",
     minute: "2-digit",
     hour12: true,
+    timeZone: "America/Costa_Rica",
   });
 }
 
