@@ -1,0 +1,58 @@
+---
+import { getInitials } from "../../lib/format";
+
+interface Props {
+  name: string;
+  photo?: string | null;
+  size: number;
+  borderWidth?: number;
+  class?: string;
+}
+
+const { name, photo, size, borderWidth = 2, class: className } = Astro.props;
+
+const style = `--avatar-size:${size}px;--avatar-border:${borderWidth}px;--avatar-font:${Math.round(size * 0.36)}px`;
+---
+
+{
+  photo ? (
+    <img
+      class:list={["avatar", className]}
+      style={style}
+      src={photo}
+      alt={name}
+      width={size}
+      height={size}
+      loading="lazy"
+      decoding="async"
+    />
+  ) : (
+    <span class:list={["avatar avatar--initials", className]} style={style} aria-label={name}>
+      {getInitials(name)}
+    </span>
+  )
+}
+
+<style>
+  .avatar {
+    width: var(--avatar-size);
+    height: var(--avatar-size);
+    border-radius: 50%;
+    object-fit: cover;
+    border: var(--avatar-border) solid rgba(255, 255, 255, 0.7);
+    display: block;
+    flex-shrink: 0;
+  }
+
+  .avatar--initials {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #e6deff 0%, #c9beff 100%);
+    color: #2f009b;
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: var(--avatar-font);
+    letter-spacing: -0.02em;
+  }
+</style>

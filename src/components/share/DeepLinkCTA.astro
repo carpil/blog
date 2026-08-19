@@ -1,0 +1,105 @@
+---
+import { APP_STORE_URL, PLAY_STORE_URL } from "../../lib/share-links";
+
+interface Props {
+  label: string;
+  href: string;
+  captionMobile: string;
+  captionDesktop: string;
+}
+
+const { label, href, captionMobile, captionDesktop } = Astro.props;
+---
+
+<div class="cta-block">
+  <a
+    class="cta"
+    href={href}
+    data-deep-link={href}
+    data-store-ios={APP_STORE_URL}
+    data-store-android={PLAY_STORE_URL}>{label}</a
+  >
+  <p class="caption caption--mobile">{captionMobile}</p>
+  <p class="caption caption--desktop">{captionDesktop}</p>
+</div>
+
+<script>
+  const APPLE_UA = /iPhone|iPad|iPod|Macintosh/i;
+  const MOBILE_UA = /iPhone|iPad|iPod|Android/i;
+  const FALLBACK_DELAY = 1500;
+
+  const cta = document.querySelector<HTMLAnchorElement>("[data-deep-link]");
+
+  if (cta) {
+    const ua = navigator.userAgent;
+    const storeUrl = APPLE_UA.test(ua)
+      ? cta.dataset.storeIos!
+      : cta.dataset.storeAndroid!;
+
+    if (!MOBILE_UA.test(ua)) {
+      cta.href = storeUrl;
+      cta.target = "_blank";
+      cta.rel = "noopener noreferrer";
+    }
+
+    cta.addEventListener("click", (event) => {
+      if (!MOBILE_UA.test(ua)) return;
+
+      event.preventDefault();
+      window.location.href = cta.dataset.deepLink!;
+
+      window.setTimeout(() => {
+        if (document.visibilityState !== "visible") return;
+        window.location.href = storeUrl;
+      }, FALLBACK_DELAY);
+    });
+  }
+</script>
+
+<style>
+  .cta-block {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .cta {
+    display: block;
+    padding: 18px;
+    border-radius: 9999px;
+    background: var(--gradient-primary);
+    box-shadow: var(--shadow-lume);
+    color: var(--on-primary);
+    font-weight: 700;
+    font-size: 16px;
+    line-height: 20px;
+    text-align: center;
+    transition: transform 150ms ease;
+  }
+
+  .cta:active {
+    transform: scale(0.97);
+  }
+
+  .caption {
+    margin: 0;
+    text-align: center;
+    font-size: 12px;
+    line-height: 16px;
+    color: var(--on-surface-variant);
+  }
+
+  .caption--desktop {
+    display: none;
+  }
+
+  @media (min-width: 1024px) {
+    .caption--mobile {
+      display: none;
+    }
+
+    .caption--desktop {
+      display: block;
+    }
+  }
+</style>

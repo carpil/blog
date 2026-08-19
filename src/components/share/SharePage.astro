@@ -1,0 +1,189 @@
+---
+import DeepLinkCTA from "./DeepLinkCTA.astro";
+import GradientCard from "./GradientCard.astro";
+import ShareRow from "./ShareRow.astro";
+import SideInfo from "./SideInfo.astro";
+import type { SharePageProps } from "./types";
+
+type Props = SharePageProps;
+
+const {
+  deepLink,
+  shareUrl,
+  shareTitle,
+  shareText,
+  shareLabel,
+  ctaLabel,
+  captionMobile,
+  captionDesktop,
+  card,
+  side,
+} = Astro.props;
+---
+
+<div class="page">
+  <header class="nav">
+    <a class="brand" href="/">
+      <img
+        class="brand__mark"
+        src="/logo-carpil.png"
+        alt=""
+        width="34"
+        height="34"
+      />
+      <span class="brand__name">Carpil</span>
+    </a>
+    <nav class="nav__links">
+      <a class="nav__link" href="/">¿Qué es Carpil?</a>
+      <a class="nav__cta" href="/">Descargar la app</a>
+    </nav>
+  </header>
+
+  <div class="grid">
+    <div class="column">
+      <GradientCard {...card} />
+      <DeepLinkCTA
+        label={ctaLabel}
+        href={deepLink}
+        captionMobile={captionMobile}
+        captionDesktop={captionDesktop}
+      />
+      <ShareRow
+        label={shareLabel}
+        text={shareText}
+        title={shareTitle}
+        url={shareUrl}
+      />
+    </div>
+
+    <div class="side-slot">
+      <SideInfo {...side} />
+    </div>
+  </div>
+
+  <footer class="footer">
+    <a class="footer__link" href="/">¿Qué es Carpil?</a>
+  </footer>
+</div>
+
+<style>
+  .page {
+    max-width: 420px;
+    margin: 0 auto;
+    padding: 28px 24px 32px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .brand__mark {
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    display: block;
+  }
+
+  .brand__name {
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: 22px;
+    letter-spacing: -0.8px;
+    color: var(--on-surface);
+  }
+
+  .nav__links {
+    display: none;
+  }
+
+  .grid {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .column {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .side-slot {
+    display: none;
+  }
+
+  .footer {
+    text-align: center;
+    padding-top: 8px;
+  }
+
+  .footer__link {
+    font-size: 12px;
+    line-height: 16px;
+    color: var(--on-surface-variant);
+  }
+
+  @media (min-width: 1024px) {
+    .page {
+      max-width: 1280px;
+      padding: 32px 72px 56px;
+      gap: 48px;
+    }
+
+    .brand__mark {
+      width: 36px;
+      height: 36px;
+    }
+
+    .brand__name {
+      font-size: 24px;
+    }
+
+    .nav__links {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+    }
+
+    .nav__link {
+      font-weight: 600;
+      font-size: 14px;
+      color: var(--on-surface-variant);
+    }
+
+    .nav__cta {
+      padding: 12px 24px;
+      border-radius: 9999px;
+      background: var(--surface-container-high);
+      color: var(--primary);
+      font-weight: 600;
+      font-size: 14px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 480px 1fr;
+      gap: 88px;
+      align-items: start;
+    }
+
+    .side-slot {
+      display: block;
+    }
+
+    .footer {
+      display: none;
+    }
+  }
+</style>

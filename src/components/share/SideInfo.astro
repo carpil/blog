@@ -1,0 +1,184 @@
+---
+import Icon from "./Icon.astro";
+import type { SideProps } from "./types";
+import { APP_STORE_URL, PLAY_STORE_URL } from "../../lib/share-links";
+
+type Props = SideProps;
+
+const { label, heading, body, bullets } = Astro.props;
+---
+
+<aside class="side">
+  <div class="side__head">
+    <p class="side__label">{label}</p>
+    <h2 class="side__heading">{heading}</h2>
+    <p class="side__body">{body}</p>
+  </div>
+
+  <ul class="side__bullets">
+    {
+      bullets.map((bullet) => (
+        <li class="side__bullet">
+          <span class="side__tile">
+            <Icon name={bullet.icon} size={20} />
+          </span>
+          <span class="side__bullet-text">{bullet.text}</span>
+        </li>
+      ))
+    }
+  </ul>
+
+  <div class="side__stores">
+    <a
+      class="side__store"
+      href={APP_STORE_URL}
+      target="_blank"
+      rel="noopener noreferrer"
+    >
+      <Icon name="apple" size={24} />
+      <span>
+        <span class="side__store-kicker">Descargala en el</span>
+        <span class="side__store-name">App Store</span>
+      </span>
+    </a>
+    <a
+      class="side__store"
+      href={PLAY_STORE_URL}
+      target="_blank"
+      rel="noopener noreferrer"
+    >
+      <Icon name="play" size={24} />
+      <span>
+        <span class="side__store-kicker">Disponible en</span>
+        <span class="side__store-name">Google Play</span>
+      </span>
+    </a>
+  </div>
+
+  <p class="side__footer">Seguridad · Confianza · Comunidad</p>
+</aside>
+
+<style>
+  .side {
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+    padding-top: 8px;
+  }
+
+  .side__head {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .side__label {
+    margin: 0;
+    font-weight: 700;
+    font-size: 11px;
+    line-height: 16px;
+    letter-spacing: 1.1px;
+    text-transform: uppercase;
+    color: var(--primary);
+  }
+
+  .side__heading {
+    margin: 0;
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 36px;
+    line-height: 42px;
+    letter-spacing: -0.4px;
+    color: var(--on-surface);
+    text-wrap: pretty;
+  }
+
+  .side__body {
+    margin: 0;
+    max-width: 520px;
+    font-size: 16px;
+    line-height: 24px;
+    color: var(--on-surface-variant);
+  }
+
+  .side__bullets {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+  }
+
+  .side__bullet {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .side__tile {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    background: var(--surface-container-high);
+    color: var(--primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .side__bullet-text {
+    font-size: 14px;
+    line-height: 20px;
+    color: var(--on-surface);
+  }
+
+  .side__stores {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+  }
+
+  .side__store {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 22px;
+    border-radius: 16px;
+    background: var(--surface-container-high);
+    color: var(--on-surface);
+    transition: transform 150ms ease;
+  }
+
+  .side__store:active {
+    transform: scale(0.97);
+  }
+
+  .side__store-kicker {
+    display: block;
+    font-weight: 500;
+    font-size: 10px;
+    line-height: 14px;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    color: var(--on-surface-variant);
+  }
+
+  .side__store-name {
+    display: block;
+    font-weight: 600;
+    font-size: 16px;
+    line-height: 24px;
+  }
+
+  .side__footer {
+    margin: 0;
+    font-weight: 700;
+    font-size: 11px;
+    line-height: 16px;
+    letter-spacing: 1.1px;
+    text-transform: uppercase;
+    color: var(--outline);
+  }
+</style>
