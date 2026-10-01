@@ -1,0 +1,291 @@
+---
+import TrackView from "../components/booking/TrackView";
+import WhatsAppLead from "../components/booking/WhatsAppLead";
+import Avatar from "../components/share/Avatar.astro";
+import NotFound from "../components/share/NotFound.astro";
+import ShareRow from "../components/share/ShareRow.astro";
+import VerifiedShield from "../components/share/VerifiedShield.astro";
+import ShareLayout from "../layouts/ShareLayout.astro";
+import { getDriverPage } from "../lib/api";
+import { formatDateShort, formatPrice, formatTime, freeSeats, seatsBadgeLabel } from "../lib/format";
+import { driverWhatsappMessage } from "../lib/ride-copy";
+import { driverUrl } from "../lib/share-links";
+
+// Static routes (/ride, /privacy, /api…) win over this one, and the API refuses to
+// hand out a slug that collides with them.
+const { slug } = Astro.params;
+const page = slug ? await getDriverPage(slug) : null;
+if (!page) Astro.response.status = 404;
+
+const driver = page?.driver ?? null;
+const rides = page?.rides ?? [];
+
+const title = driver ? `Viajes de ${driver.firstName} — Carpil` : "Conductor no encontrado — Carpil";
+const description = driver
+  ? rides.length > 0
+    ? `${driver.firstName} tiene ${rides.length === 1 ? "1 viaje" : `${rides.length} viajes`} próximos. Apartá tu campo sin descargar nada.`
+    : `Mirá los próximos viajes de ${driver.firstName} y apartá tu campo sin descargar nada.`
+  : "Este conductor no existe en Carpil.";
+const ogImage = driver ? new URL(`/api/og/driver/${driver.slug}.png`, Astro.url.origin).href : undefined;
+
+const memberSince = driver?.memberSince
+  ? new Date(driver.memberSince).toLocaleDateString("es-CR", { month: "long", year: "numeric", timeZone: "America/Costa_Rica" })
+  : null;
+---
+
+<ShareLayout title={title} description={description} image={ogImage} index={driver !== null}>
+  {
+    driver ? (
+      <div class="page">
+        <TrackView client:idle event="web_driver_page_opened" properties={{ driver_slug: driver.slug, rides: rides.length }} />
+        <header class="nav">
+          <a class="brand" href="/">
+            <img class="brand__mark" src="/logo-carpil.png" alt="" width="34" height="34" />
+            <span class="brand__name">Carpil</span>
+          </a>
+        </header>
+
+        <section class="profile">
+          <Avatar name={driver.name} photo={driver.profilePicture} size={88} borderWidth={3} />
+          <div class="profile__text">
+            <h1 class="profile__name">
+              {driver.name}
+              {driver.kycVerified && <VerifiedShield size={20} class="profile__shield" />}
+            </h1>
+            <p class="profile__meta">
+              {driver.averageRating != null && driver.ratingsCount > 0 && (
+                <span>★ {driver.averageRating.toFixed(1)} · {driver.ratingsCount} {driver.ratingsCount === 1 ? "calificación" : "calificaciones"}</span>
+              )}
+              {memberSince && <span>Conductor en Carpil desde {memberSince}</span>}
+            </p>
+          </div>
+        </section>
+
+        {driver.whatsapp && (
+          <WhatsAppLead
+            client:load
+            driverSlug={driver.slug ?? undefined}
+            driverFirstName={driver.firstName}
+            whatsapp={driver.whatsapp}
+            message={driverWhatsappMessage(driver.firstName)}
+            label={`Escribirle a ${driver.firstName} por WhatsApp`}
+            context="driver_page"
+          />
+        )}
+
+        <section class="rides">
+          <h2 class="rides__title">Próximos viajes</h2>
+          {rides.length === 0 && (
+            <p class="rides__empty">
+              {driver.firstName} no tiene viajes publicados por ahora. Escribile por WhatsApp para saber cuándo sale.
+            </p>
+          )}
+          {rides.map((ride) => {
+            const seats = freeSeats(ride);
+            return (
+              <a class="ride" href={`/ride/${ride.id}`}>
+                <div class="ride__when">
+                  <span class="ride__day">{formatDateShort(ride.departureDate)}</span>
+                  <span class="ride__time">{formatTime(ride.departureDate)}</span>
+                </div>
+                <div class="ride__route">
+                  <span>{ride.origin?.name.primary ?? "Origen"}</span>
+                  <span class="ride__arrow" aria-hidden="true">→</span>
+                  <span>{ride.destination?.name.primary ?? "Destino"}</span>
+                </div>
+                <div class="ride__foot">
+                  <span class="ride__price">{formatPrice(ride.price)}</span>
+                  <span class:list={["ride__seats", { "ride__seats--full": seats <= 0 }]}>{seatsBadgeLabel(seats)}</span>
+                </div>
+                <span class="ride__cta">{seats > 0 ? "Apartar campo" : "Ver viaje"}</span>
+              </a>
+            );
+          })}
+        </section>
+
+        {driver.slug && (
+          <ShareRow
+            label="Compartí los viajes de este conductor"
+            text={`Viajes de ${driver.firstName} en Carpil:`}
+            title={title}
+            url={driverUrl(driver.slug)}
+          />
+        )}
+      </div>
+    ) : (
+      <div class="fallback">
+        <NotFound title="Conductor no encontrado" message="Revisá el link que te pasaron o pedile uno nuevo al conductor." />
+      </div>
+    )
+  }
+</ShareLayout>
+
+<style>
+  .page {
+    max-width: 520px;
+    margin: 0 auto;
+    padding: 28px 24px 40px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .brand__mark {
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    display: block;
+  }
+
+  .brand__name {
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: 22px;
+    letter-spacing: -0.8px;
+  }
+
+  .profile {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .profile__name {
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: 26px;
+    line-height: 32px;
+    letter-spacing: -0.6px;
+  }
+
+  .profile__meta {
+    margin: 6px 0 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    font-size: 14px;
+    line-height: 20px;
+    color: var(--on-surface-variant);
+  }
+
+  .rides {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .rides__title {
+    margin: 0;
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 20px;
+  }
+
+  .rides__empty {
+    margin: 0;
+    padding: 20px;
+    border-radius: 20px;
+    background: var(--surface-container-low);
+    border: 1px solid var(--border-ghost);
+    font-size: 15px;
+    line-height: 21px;
+    color: var(--on-surface-variant);
+  }
+
+  .ride {
+    display: grid;
+    gap: 10px;
+    padding: 18px 20px;
+    border-radius: 20px;
+    background: var(--surface-container-low);
+    border: 1px solid var(--border-ghost);
+    transition: transform 150ms ease, border-color 150ms ease;
+  }
+
+  .ride:active {
+    transform: scale(0.98);
+  }
+
+  .ride:hover {
+    border-color: var(--primary-container);
+  }
+
+  .ride__when {
+    display: flex;
+    gap: 10px;
+    align-items: baseline;
+    font-weight: 600;
+  }
+
+  .ride__day {
+    font-size: 15px;
+    text-transform: capitalize;
+  }
+
+  .ride__time {
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: 22px;
+  }
+
+  .ride__route {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    font-size: 17px;
+    font-weight: 600;
+  }
+
+  .ride__arrow {
+    color: var(--outline);
+  }
+
+  .ride__foot {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 14px;
+  }
+
+  .ride__price {
+    font-weight: 700;
+    color: var(--primary);
+  }
+
+  .ride__seats {
+    color: #7ee2a4;
+    font-weight: 600;
+  }
+
+  .ride__seats--full {
+    color: var(--on-surface-variant);
+  }
+
+  .ride__cta {
+    margin-top: 4px;
+    padding: 12px;
+    border-radius: 9999px;
+    background: var(--gradient-primary);
+    color: var(--on-primary);
+    font-weight: 700;
+    font-size: 15px;
+    text-align: center;
+  }
+
+  .fallback {
+    max-width: 420px;
+    margin: 0 auto;
+    padding: 56px 24px;
+  }
+</style>

@@ -19,6 +19,9 @@ const {
   card,
   side,
 } = Astro.props;
+
+// The ride page brings its own booking actions; the trip-request page keeps the app CTA.
+const hasActions = Astro.slots.has("actions");
 ---
 
 <div class="page">
@@ -42,12 +45,18 @@ const {
   <div class="grid">
     <div class="column">
       <GradientCard {...card} />
-      <DeepLinkCTA
-        label={ctaLabel}
-        href={deepLink}
-        captionMobile={captionMobile}
-        captionDesktop={captionDesktop}
-      />
+      {
+        hasActions ? (
+          <slot name="actions" />
+        ) : (
+          <DeepLinkCTA
+            label={ctaLabel}
+            href={deepLink}
+            captionMobile={captionMobile}
+            captionDesktop={captionDesktop}
+          />
+        )
+      }
       <ShareRow
         label={shareLabel}
         text={shareText}

@@ -48,6 +48,11 @@ export function getInitials(name: string): string {
     .toUpperCase();
 }
 
+// The API's availableSeats is the ride's capacity, not what is left.
+export function freeSeats(ride: { availableSeats: number; passengers: unknown[] }): number {
+  return Math.max(0, ride.availableSeats - ride.passengers.length);
+}
+
 export function seatsLabel(seats: number): string {
   return seats === 1 ? "1 cupo" : `${seats} cupos`;
 }
