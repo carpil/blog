@@ -31,7 +31,7 @@ const dashedSeats = seatStack
 
   <p class="badge">
     <span class="badge__dot" aria-hidden="true"></span>
-    {badge}
+    <span data-live-badge>{badge}</span>
   </p>
 
   <div class="route">
@@ -55,9 +55,9 @@ const dashedSeats = seatStack
   <div class="facts">
     {
       chips.map((chip) => (
-        <span class="facts__chip">
+        <span class="facts__chip" data-chip={chip.icon}>
           <Icon name={chip.icon} size={16} />
-          {chip.label}
+          <span data-chip-label>{chip.label}</span>
         </span>
       ))
     }
@@ -77,7 +77,7 @@ const dashedSeats = seatStack
 
     {
       seatStack && (
-        <div class="seats" aria-label="Cupos del viaje">
+        <div class="seats" aria-label="Cupos del viaje" data-live-seats>
           {stackedPassengers.map((passenger) => (
             <Avatar
               name={passenger.name}
@@ -93,8 +93,71 @@ const dashedSeats = seatStack
         </div>
       )
     }
+    {
+      seatStack && (
+        <>
+          <template data-seat-template="photo">
+            <Avatar name="" photo="data:," size={28} borderWidth={1.5} class="seats__avatar" />
+          </template>
+          <template data-seat-template="initials">
+            <Avatar name="" size={28} borderWidth={1.5} class="seats__avatar" />
+          </template>
+          <template data-seat-template="free">
+            <span class="seats__free" aria-hidden="true" />
+          </template>
+        </>
+      )
+    }
   </footer>
 </article>
+
+<script>
+  import { getInitials, seatsBadgeLabel, seatsLabel } from "../../lib/format";
+  import { RIDE_SEATS_EVENT, type RideSeatsDetail } from "../../lib/ride-events";
+
+  const MAX_STACK = 4;
+
+  // Clones server-rendered templates so the new nodes keep the card's scoped styles.
+  const cloneTemplate = (kind: string): HTMLElement | null => {
+    const template = document.querySelector<HTMLTemplateElement>(`template[data-seat-template="${kind}"]`);
+    return (template?.content.firstElementChild?.cloneNode(true) as HTMLElement | undefined) ?? null;
+  };
+
+  const seatAvatar = ({ name, photo }: RideSeatsDetail["passengers"][number]): HTMLElement | null => {
+    if (photo) {
+      const image = cloneTemplate("photo");
+      image?.setAttribute("src", photo);
+      image?.setAttribute("alt", name);
+      return image;
+    }
+    const initials = cloneTemplate("initials");
+    if (initials) {
+      initials.textContent = getInitials(name);
+      initials.setAttribute("aria-label", name);
+    }
+    return initials;
+  };
+
+  window.addEventListener(RIDE_SEATS_EVENT, (event) => {
+    const { freeSeats, passengers } = (event as CustomEvent<RideSeatsDetail>).detail;
+
+    const badge = document.querySelector("[data-live-badge]");
+    if (badge) badge.textContent = seatsBadgeLabel(freeSeats);
+
+    const seatsChip = document.querySelector('[data-chip="users"] [data-chip-label]');
+    if (seatsChip) seatsChip.textContent = seatsLabel(freeSeats);
+
+    const stack = document.querySelector("[data-live-seats]");
+    if (!stack) return;
+    const shown = passengers.slice(0, MAX_STACK);
+    const free = Math.max(0, Math.min(freeSeats, MAX_STACK - shown.length));
+    const nodes = [
+      ...shown.map(seatAvatar),
+      ...Array.from({ length: free }, () => cloneTemplate("free")),
+    ].filter((node): node is HTMLElement => node !== null);
+    stack.replaceChildren(...nodes);
+  });
+</script>
 
 <style>
   .card {

@@ -38,13 +38,24 @@ export async function renderOgPng(
   return png;
 }
 
-export function pngResponse(png: Uint8Array<ArrayBuffer>): Response {
+export interface OgCachePolicy {
+  browserSeconds: number;
+  cdnSeconds: number;
+  staleSeconds?: number;
+}
+
+export const STABLE_CACHE: OgCachePolicy = { browserSeconds: 3600, cdnSeconds: 86400 };
+// Seat counts change by the minute, so a ride card can't sit in the CDN for a day.
+export const SEATS_CACHE: OgCachePolicy = { browserSeconds: 60, cdnSeconds: 300, staleSeconds: 600 };
+
+export function pngResponse(png: Uint8Array<ArrayBuffer>, cache: OgCachePolicy = STABLE_CACHE): Response {
+  const stale = cache.staleSeconds ? `, stale-while-revalidate=${cache.staleSeconds}` : "";
   return new Response(png, {
     status: 200,
     headers: {
       "Content-Type": "image/png",
-      "Cache-Control": "public, max-age=3600, s-maxage=86400",
-      "CDN-Cache-Control": "public, max-age=86400",
+      "Cache-Control": `public, max-age=${cache.browserSeconds}, s-maxage=${cache.cdnSeconds}${stale}`,
+      "CDN-Cache-Control": `public, max-age=${cache.cdnSeconds}${stale}`,
     },
   });
 }

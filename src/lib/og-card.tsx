@@ -1,5 +1,5 @@
 import { LOGO_DATA_URI } from "./logo-data";
-import { SHIELD_ICON } from "./og-icons";
+import { ARROW_ICON, SHIELD_ICON, STAR_ICON } from "./og-icons";
 
 export interface OgChip {
   icon: string;
@@ -434,6 +434,123 @@ export function buildOgCard(props: OgCardProps) {
             </div>
           </div>
         </div>
+      </div>
+    </div>
+  );
+}
+
+export interface OgDriverRide {
+  when: string;
+  origin: string;
+  destination: string;
+}
+
+export interface OgDriverCardProps {
+  name: string;
+  photo: string | null;
+  verified: boolean;
+  summary: string;
+  rating: string | null;
+  rides: OgDriverRide[];
+  footer: string;
+}
+
+const MAX_DRIVER_RIDES = 2;
+
+// The preview a WhatsApp group sees for www.carpil.app/<slug>: whose trips these are
+// and the next ones, so people know it's their driver before they tap.
+export function buildDriverOgCard(props: OgDriverCardProps) {
+  const { name, photo, verified, summary, rating, rides, footer } = props;
+  const visibleRides = rides.slice(0, MAX_DRIVER_RIDES);
+
+  return (
+    <div
+      style={{
+        width: "1200px",
+        height: "630px",
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "space-between",
+        padding: "52px 64px",
+        position: "relative",
+        overflow: "hidden",
+        background: "linear-gradient(150deg, #8a68ff 0%, #6c47ff 58%, #5b32f0 100%)",
+        fontFamily: "Inter, InterExt",
+        color: "#ffffff",
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          position: "absolute",
+          top: "-180px",
+          left: "800px",
+          width: "520px",
+          height: "520px",
+          borderRadius: "50%",
+          background: "rgba(255,255,255,0.13)",
+        }}
+      />
+
+      <div style={{ display: "flex", alignItems: "center", gap: "16px", position: "relative" }}>
+        <img src={LOGO_DATA_URI} width={56} height={56} style={{ borderRadius: "16px" }} />
+        <span style={{ fontFamily: "Jakarta", fontWeight: 800, fontSize: "38px", letterSpacing: "-1.2px" }}>
+          Carpil
+        </span>
+      </div>
+
+      <div style={{ display: "flex", alignItems: "center", gap: "36px", position: "relative" }}>
+        <Avatar photo={photo} name={name} size={168} border={5} />
+        <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+            <span
+              style={{
+                fontFamily: "Jakarta",
+                fontWeight: 800,
+                fontSize: "64px",
+                lineHeight: 1.05,
+                letterSpacing: "-2px",
+              }}
+            >
+              {truncate(name, 22)}
+            </span>
+            {verified && <img src={SHIELD_ICON} width={44} height={44} />}
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: "12px", fontWeight: 600, fontSize: "28px", color: WHITE_70 }}>
+            <span>{summary}</span>
+            {rating && (
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <span>·</span>
+                <img src={STAR_ICON} width={26} height={26} />
+                <span>{rating}</span>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div style={{ display: "flex", flexDirection: "column", gap: "14px", position: "relative" }}>
+        {visibleRides.map((ride) => (
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "20px",
+              padding: "14px 28px",
+              borderRadius: "9999px",
+              background: "rgba(255,255,255,0.18)",
+              fontSize: "28px",
+            }}
+          >
+            <span style={{ fontWeight: 700 }}>{ride.when}</span>
+            <div style={{ display: "flex", alignItems: "center", gap: "10px", fontWeight: 600, color: WHITE_70 }}>
+              <span>{truncate(ride.origin, 18)}</span>
+              <img src={ARROW_ICON} width={26} height={26} />
+              <span>{truncate(ride.destination, 18)}</span>
+            </div>
+          </div>
+        ))}
+        <span style={{ fontWeight: 700, fontSize: "26px", color: WHITE_70, letterSpacing: "0.4px" }}>{footer}</span>
       </div>
     </div>
   );

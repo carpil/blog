@@ -4,7 +4,7 @@ export const APP_STORE_URL =
 export const PLAY_STORE_URL =
   "https://play.google.com/store/apps/details?id=com.carpil.carpil";
 
-export const SITE_URL = "https://carpil.app";
+export const SITE_URL = "https://www.carpil.app";
 
 export type ShareVariant = "ride" | "trip-request";
 
@@ -22,4 +22,14 @@ export function whatsappShareUrl(text: string, url: string): string {
 
 export function facebookShareUrl(url: string): string {
   return `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`;
+}
+
+export function driverUrl(slug: string): string {
+  return `${SITE_URL}/${slug}`;
+}
+
+// A chat with one person, unlike whatsappShareUrl which lets you pick who to send to.
+export function whatsappChatUrl(phoneE164: string, text: string): string {
+  const digits = phoneE164.replace(/\D/g, "");
+  return `https://wa.me/${digits}?text=${encodeURIComponent(text)}`;
 }

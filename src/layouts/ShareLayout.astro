@@ -12,9 +12,11 @@ interface Props {
   title: string;
   description: string;
   image?: string;
+  // Share pages for a single ride stay out of search; a driver's page is meant to be found.
+  index?: boolean;
 }
 
-const { title, description, image } = Astro.props;
+const { title, description, image, index = false } = Astro.props;
 
 const canonicalURL = new URL(Astro.url.pathname, SITE_URL).href;
 ---
@@ -30,7 +32,7 @@ const canonicalURL = new URL(Astro.url.pathname, SITE_URL).href;
 
     <title>{title}</title>
     <meta name="description" content={description} />
-    <meta name="robots" content="noindex, nofollow" />
+    <meta name="robots" content={index ? "index, follow" : "noindex, nofollow"} />
 
     <meta property="og:type" content="website" />
     <meta property="og:url" content={canonicalURL} />

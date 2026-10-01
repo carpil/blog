@@ -1,20 +1,30 @@
 ---
+import BookSeat from "../../components/booking/BookSeat";
+import RideClosed from "../../components/booking/RideClosed.astro";
+import TrackView from "../../components/booking/TrackView";
 import NotFound from "../../components/share/NotFound.astro";
 import SharePage from "../../components/share/SharePage.astro";
 import type { SharePageProps } from "../../components/share/types";
 import ShareLayout from "../../layouts/ShareLayout.astro";
-import { getRide } from "../../lib/api";
+import { getRidePage } from "../../lib/api";
 import {
   formatDateShort,
   formatPrice,
   formatTime,
-  seatsBadgeLabel,
+  freeSeats,
   seatsLabel,
 } from "../../lib/format";
+import { rideWhatsappMessage, stateBadge } from "../../lib/ride-copy";
 import { deepLink, shareUrl } from "../../lib/share-links";
 
 const { id } = Astro.params;
-const ride = await getRide(id!);
+const page = await getRidePage(id!);
+if (!page) Astro.response.status = 404;
+
+const ride = page?.ride ?? null;
+const driver = page?.driver ?? null;
+const state = page?.state ?? null;
+const seats = ride ? freeSeats(ride) : 0;
 
 const origin = ride?.origin?.name.primary ?? "Origen";
 const destination = ride?.destination?.name.primary ?? "Destino";
@@ -24,76 +34,93 @@ const title = ride
   : "Viaje no encontrado — Carpil";
 
 const description = ride
-  ? `${formatDateShort(ride.departureDate)} · ${formatTime(ride.departureDate)} · ${formatPrice(ride.price)} por asiento · ${seatsLabel(ride.availableSeats)}`
+  ? `${formatDateShort(ride.departureDate)} · ${formatTime(ride.departureDate)} · ${formatPrice(ride.price)} por campo · ${seatsLabel(seats)}`
   : "Este viaje no existe o fue eliminado por el conductor.";
 
 const ogImage = ride
   ? new URL(`/api/og/ride/${id}.png`, Astro.url.origin).href
   : undefined;
 
-const page: SharePageProps | null = ride
-  ? {
-      deepLink: deepLink("ride", ride.id),
-      shareUrl: shareUrl("ride", ride.id),
-      shareTitle: title,
-      shareText: `Voy de ${origin} a ${destination} el ${formatDateShort(ride.departureDate)}. Unite por acá:`,
-      shareLabel: "O compartí este viaje",
-      ctaLabel: "Unirme al viaje",
-      captionMobile:
-        "Se abre en la app. Si no la tenés, te llevamos a la tienda.",
-      captionDesktop:
-        "Escaneá o abrí este enlace en tu celular para unirte desde la app.",
-      card: {
-        badge: seatsBadgeLabel(ride.availableSeats),
-        origin,
-        destination,
-        chips: [
-          { icon: "calendar", label: formatDateShort(ride.departureDate) },
-          { icon: "clock", label: formatTime(ride.departureDate) },
-          {
-            icon: "banknote",
-            label: `${formatPrice(ride.price)} por asiento`,
+const sharePage: SharePageProps | null =
+  ride && driver && state
+    ? {
+        deepLink: deepLink("ride", ride.id),
+        shareUrl: shareUrl("ride", ride.id),
+        shareTitle: title,
+        shareText: `Voy de ${origin} a ${destination} el ${formatDateShort(ride.departureDate)}. Apartá tu campo acá:`,
+        shareLabel: "O compartí este viaje",
+        ctaLabel: "Unirme al viaje",
+        captionMobile: "Se abre en la app. Si no la tenés, te llevamos a la tienda.",
+        captionDesktop: "Escaneá o abrí este enlace en tu celular para unirte desde la app.",
+        card: {
+          badge: stateBadge(ride, state),
+          origin,
+          destination,
+          chips: [
+            { icon: "calendar", label: formatDateShort(ride.departureDate) },
+            { icon: "clock", label: formatTime(ride.departureDate) },
+            { icon: "banknote", label: `${formatPrice(ride.price)} por campo` },
+            ...(state === "open" ? [{ icon: "users" as const, label: seatsLabel(seats) }] : []),
+          ],
+          personOverline: "Conduce",
+          personName: driver.name,
+          personPhoto: driver.profilePicture,
+          personVerified: driver.kycVerified,
+          seatStack: {
+            passengers: ride.passengers.map((passenger) => ({
+              name: passenger.name,
+              photo: passenger.profilePicture,
+            })),
+            freeSeats: state === "open" ? seats : 0,
           },
-          { icon: "users", label: seatsLabel(ride.availableSeats) },
-        ],
-        personOverline: "Conduce",
-        personName: ride.driver.name,
-        personPhoto: ride.driver.profilePicture,
-        personVerified: true,
-        seatStack: {
-          passengers: ride.passengers.map((passenger) => ({
-            name: passenger.name,
-            photo: passenger.profilePicture,
-          })),
-          freeSeats: ride.availableSeats,
         },
-      },
-      side: {
-        label: "Viajá con Carpil",
-        heading: "Sabes con quién viajas, cuánto pagas y cuándo sales.",
-        body: "Carpil conecta conductores y pasajeros verificados para viajes entre ciudades en Costa Rica. Unite a este viaje desde la app.",
-        bullets: [
-          {
-            icon: "shield-check",
-            text: "Conductores verificados con cédula y licencia",
-          },
-          { icon: "banknote", text: "Pagás el precio publicado, sin sorpresas" },
-          { icon: "messages-square", text: "Chat del viaje dentro de la app" },
-        ],
-      },
-    }
-  : null;
+        side: {
+          label: "Viajá con Carpil",
+          heading: "Sabés con quién viajás, cuánto pagás y cuándo salís.",
+          body: `Apartás tu campo sin descargar nada y le pagás directo a ${driver.firstName}.`,
+          bullets: [
+            { icon: "shield-check", text: "Conductores verificados con cédula y licencia" },
+            { icon: "banknote", text: "Pagás el precio publicado, sin sorpresas" },
+            { icon: "message-circle", text: "Si preferís, coordinás por WhatsApp" },
+          ],
+        },
+      }
+    : null;
 ---
 
 <ShareLayout title={title} description={description} image={ogImage}>
   {
-    page ? (
-      <SharePage {...page} />
+    sharePage && ride && driver && state ? (
+      <>
+        <TrackView client:idle event="web_ride_opened" properties={{ ride_id: ride.id, state, driver_slug: driver.slug }} />
+        <SharePage {...sharePage}>
+          <Fragment slot="actions">
+            {
+              state === "open" ? (
+                <BookSeat
+                  client:only="react"
+                  rideId={ride.id}
+                  driverFirstName={driver.firstName}
+                  driverWhatsapp={driver.whatsapp}
+                  whatsappMessage={rideWhatsappMessage(driver.firstName, ride)}
+                  initialFreeSeats={seats}
+                >
+                  <div slot="fallback" class="booking-placeholder" aria-hidden="true">
+                    Reservar mi campo
+                  </div>
+                </BookSeat>
+              ) : (
+                <RideClosed ride={ride} driver={driver} state={state} />
+              )
+            }
+          </Fragment>
+        </SharePage>
+      </>
     ) : (
       <div class="fallback">
         <NotFound
           title="Viaje no encontrado"
-          message="Este viaje no existe, ya salió o fue cancelado por el conductor."
+          message="Este viaje no existe o fue eliminado por el conductor."
         />
       </div>
     )
@@ -101,6 +128,18 @@ const page: SharePageProps | null = ride
 </ShareLayout>
 
 <style>
+  .booking-placeholder {
+    padding: 18px;
+    border-radius: 9999px;
+    background: var(--gradient-primary);
+    color: var(--on-primary);
+    font-weight: 700;
+    font-size: 17px;
+    line-height: 20px;
+    text-align: center;
+    opacity: 0.7;
+  }
+
   .fallback {
     max-width: 420px;
     margin: 0 auto;
