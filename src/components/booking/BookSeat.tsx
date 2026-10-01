@@ -16,6 +16,7 @@ import { identify, track } from "../../lib/client/analytics";
 import { isLocalPhone, localDigits, rememberPhone, rememberedPhone, toE164 } from "../../lib/client/phone";
 import { ApiError, joinRideFromWeb, leaveRide, loginWeb, updateContact, type WebUser } from "../../lib/client/web-api";
 import { whatsappChatUrl } from "../../lib/share-links";
+import { RIDE_SEATS_EVENT, type RideSeatsDetail } from "../../lib/ride-events";
 import WhatsAppLead from "./WhatsAppLead";
 import "./booking.css";
 
@@ -198,8 +199,15 @@ export default function BookSeat({ rideId, driverFirstName, driverWhatsapp, what
         (snapshot) => {
           const data = snapshot.data();
           if (!data) return;
-          setFreeSeats(Math.max(0, (data.availableSeats ?? 0) - (data.passengers?.length ?? 0)));
+          const passengers: { name?: string; profilePicture?: string | null }[] = data.passengers ?? [];
+          const seats = Math.max(0, (data.availableSeats ?? 0) - passengers.length);
+          setFreeSeats(seats);
           setOnBoard((data.passengerIds ?? []).includes(user.uid));
+          const detail: RideSeatsDetail = {
+            freeSeats: seats,
+            passengers: passengers.map((passenger) => ({ name: passenger.name ?? "", photo: passenger.profilePicture || null })),
+          };
+          window.dispatchEvent(new CustomEvent(RIDE_SEATS_EVENT, { detail }));
         },
         () => {},
       );
@@ -209,6 +217,16 @@ export default function BookSeat({ rideId, driverFirstName, driverWhatsapp, what
       unsubscribe();
     };
   }, [user, rideId]);
+
+  // Signing out must drop everything that belonged to the previous account, or the
+  // "¡Listo!" panel would linger until a reload.
+  useEffect(() => {
+    if (user) return;
+    setOnBoard(false);
+    setAccount(null);
+    setConfirmingCancel(false);
+    setStep((current) => (current === "done" || current === "contact" ? "idle" : current));
+  }, [user]);
 
   const start = () => {
     track("web_book_cta_clicked", { ride_id: rideId, signed_in: user !== null });
