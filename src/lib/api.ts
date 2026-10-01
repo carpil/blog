@@ -1,18 +1,56 @@
 import type { Ride, RideResponse } from "../types/ride";
+import type {
+  TripMemberInfo,
+  TripRequest,
+  TripRequestResponse,
+} from "../types/trip-request";
 
 const BASE_URL = import.meta.env.API_URL ?? process.env.API_URL;
 
-export async function getRide(id: string): Promise<Ride | null> {
-  const url = `${BASE_URL}/rides/drivers/${id}`;
+async function getJson<T>(path: string): Promise<T | null> {
+  try {
+    const res = await fetch(`${BASE_URL}${path}`);
 
-  const res = await fetch(url);
+    if (!res.ok) {
+      console.log(`[api] ${path} responded ${res.status}`, await res.text());
+      return null;
+    }
 
-  if (!res.ok) {
-    const text = await res.text();
-    console.log("[getRide] error body", text);
+    return (await res.json()) as T;
+  } catch (error) {
+    console.error(`[api] ${path} failed`, error);
     return null;
   }
+}
 
-  const data: RideResponse = await res.json();
+export async function getRide(id: string): Promise<Ride | null> {
+  const data = await getJson<RideResponse>(`/rides/drivers/${id}`);
+  if (!data?.ride) return null;
+  if (data.ride.deletedAt) return null;
+  if (data.ride.status !== "active") return null;
+
   return data.ride;
+}
+
+export interface TripRequestDetail {
+  tripRequest: TripRequest;
+  creator: TripMemberInfo | null;
+}
+
+const VISIBLE_TRIP_REQUEST_STATUSES = ["open", "matching"];
+
+export async function getTripRequest(
+  id: string,
+): Promise<TripRequestDetail | null> {
+  const data = await getJson<TripRequestResponse>(`/trip-requests/${id}`);
+  if (!data?.tripRequest) return null;
+
+  const { tripRequest } = data;
+  if (tripRequest.deletedAt) return null;
+  if (!VISIBLE_TRIP_REQUEST_STATUSES.includes(tripRequest.status)) return null;
+
+  const creator =
+    data.members?.find((member) => member.role === "creator")?.member ?? null;
+
+  return { tripRequest, creator };
 }

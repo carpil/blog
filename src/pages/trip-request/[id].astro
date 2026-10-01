@@ -1,0 +1,110 @@
+---
+import NotFound from "../../components/share/NotFound.astro";
+import SharePage from "../../components/share/SharePage.astro";
+import type { SharePageProps } from "../../components/share/types";
+import ShareLayout from "../../layouts/ShareLayout.astro";
+import { getTripRequest } from "../../lib/api";
+import {
+  formatDateShort,
+  formatTimeRange,
+  formatWeekday,
+  getFirstName,
+} from "../../lib/format";
+import { deepLink, shareUrl } from "../../lib/share-links";
+
+const { id } = Astro.params;
+const detail = await getTripRequest(id!);
+
+const tripRequest = detail?.tripRequest;
+const creator = detail?.creator;
+
+const origin = tripRequest?.origin?.name.primary ?? "Origen";
+const destination = tripRequest?.destination?.name.primary ?? "Destino";
+const passengerName = creator?.name ?? "Un pasajero";
+const firstName = getFirstName(passengerName);
+
+const date = tripRequest ? formatDateShort(tripRequest.window.earliest) : "";
+const timeRange = tripRequest
+  ? formatTimeRange(tripRequest.window.earliest, tripRequest.window.latest)
+  : "";
+const weekday = tripRequest ? formatWeekday(tripRequest.window.earliest) : "";
+
+const title = tripRequest
+  ? `${firstName} busca viaje: ${origin} → ${destination} — Carpil`
+  : "Solicitud no encontrada — Carpil";
+
+const description = tripRequest
+  ? `${date} · ${timeRange} · ¿Vas en esa ruta? Ofrecele el viaje`
+  : "Esta solicitud de viaje ya no está disponible.";
+
+const ogImage = tripRequest
+  ? new URL(`/api/og/trip-request/${id}.png`, Astro.url.origin).href
+  : undefined;
+
+const page: SharePageProps | null = tripRequest
+  ? {
+      deepLink: deepLink("trip-request", tripRequest.id),
+      shareUrl: shareUrl("trip-request", tripRequest.id),
+      shareTitle: title,
+      shareText: `¿Alguien va para ${destination} el ${weekday}?`,
+      shareLabel: "O compartí esta solicitud",
+      ctaLabel: "Ofrecerle el viaje",
+      captionMobile:
+        "Se abre en la app. Si no la tenés, te llevamos a la tienda.",
+      captionDesktop:
+        "Abrí este enlace en tu celular para ofrecerle el viaje desde la app.",
+      card: {
+        badge: "Buscando viaje",
+        origin,
+        destination,
+        chips: [
+          { icon: "calendar", label: date },
+          { icon: "clock", label: timeRange },
+        ],
+        personOverline: "Publicado por",
+        personName: passengerName,
+        personPhoto: creator?.profilePicture,
+        personVerified: creator?.verified ?? false,
+      },
+      side: {
+        label: "Carpil para conductores",
+        heading: `${firstName} busca quién lo lleve a ${destination}.`,
+        body: `¿Manejás esa ruta el ${weekday}? Publicá tu viaje en Carpil y ${firstName} recibe tu oferta al instante.`,
+        bullets: [
+          { icon: "shield-check", text: "Pasajeros verificados con cédula" },
+          {
+            icon: "banknote",
+            text: "Vos definís el precio por asiento al publicar",
+          },
+          {
+            icon: "messages-square",
+            text: "Coordinan por chat dentro de la app",
+          },
+        ],
+      },
+    }
+  : null;
+---
+
+<ShareLayout title={title} description={description} image={ogImage}>
+  {
+    page ? (
+      <SharePage {...page} />
+    ) : (
+      <div class="fallback">
+        <NotFound
+          title="Solicitud no encontrada"
+          message="Esta solicitud ya no existe, expiró o el pasajero encontró viaje."
+        />
+      </div>
+    )
+  }
+</ShareLayout>
+
+<style>
+  .fallback {
+    max-width: 420px;
+    margin: 0 auto;
+    padding: 56px 24px;
+  }
+</style>

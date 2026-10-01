@@ -1,120 +1,64 @@
 import type { APIRoute } from "astro";
-import { readFile } from "node:fs/promises";
-import { createRequire } from "node:module";
-import satori from "satori";
-import { Resvg } from "@resvg/resvg-js";
 import { getRide } from "../../../../lib/api";
-import { buildOgTemplate } from "../../../../lib/og-template";
+import {
+  formatDateShort,
+  formatPrice,
+  formatTime,
+  seatsBadgeLabel,
+} from "../../../../lib/format";
+import { buildOgCard } from "../../../../lib/og-card";
+import { CALENDAR_ICON, CLOCK_ICON } from "../../../../lib/og-icons";
+import {
+  fetchImageDataUri,
+  pngResponse,
+  renderOgPng,
+} from "../../../../lib/og-render";
 
 export const prerender = false;
 
-const require = createRequire(import.meta.url);
-
-const interRegularPromise = readFile(
-  require.resolve("@fontsource/inter/files/inter-latin-400-normal.woff"),
-);
-const interBoldPromise = readFile(
-  require.resolve("@fontsource/inter/files/inter-latin-700-normal.woff"),
-);
-
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString("es-CR", {
-    weekday: "short",
-    day: "numeric",
-    month: "short",
-    timeZone: "America/Costa_Rica",
-  });
-}
-
-function formatTime(iso: string): string {
-  return new Date(iso).toLocaleTimeString("es-CR", {
-    hour: "numeric",
-    minute: "2-digit",
-    hour12: true,
-    timeZone: "America/Costa_Rica",
-  });
-}
-
 export const GET: APIRoute = async ({ params }) => {
   const { id } = params;
-
-  if (!id) {
-    return new Response("Missing ride ID", { status: 400 });
-  }
+  if (!id) return new Response("Missing ride ID", { status: 400 });
 
   try {
     const ride = await getRide(id);
-    if (!ride) {
-      return new Response("Ride not found", { status: 404 });
-    }
+    if (!ride) return new Response("Ride not found", { status: 404 });
 
-    let driverPhotoBase64 = "";
-    if (ride.driver.profilePicture) {
-      try {
-        const photoRes = await fetch(ride.driver.profilePicture);
-        if (photoRes.ok) {
-          const photoBuffer = await photoRes.arrayBuffer();
-          const base64 = Buffer.from(photoBuffer).toString("base64");
-          const contentType =
-            photoRes.headers.get("content-type") || "image/jpeg";
-          driverPhotoBase64 = `data:${contentType};base64,${base64}`;
-        }
-      } catch {
-        // Fallback: render initial
-      }
-    }
-
-    const [boldFont, regularFont] = await Promise.all([
-      interBoldPromise,
-      interRegularPromise,
+    const visiblePassengers = ride.passengers.slice(0, 4);
+    const [driverPhoto, ...passengerPhotos] = await Promise.all([
+      fetchImageDataUri(ride.driver.profilePicture),
+      ...visiblePassengers.map((passenger) =>
+        fetchImageDataUri(passenger.profilePicture),
+      ),
     ]);
 
-    const svg = await satori(
-      buildOgTemplate({
+    const png = await renderOgPng(
+      buildOgCard({
+        badge: seatsBadgeLabel(ride.availableSeats).toUpperCase(),
         origin: ride.origin?.name.primary ?? "Origen",
         destination: ride.destination?.name.primary ?? "Destino",
-        date: formatDate(ride.departureDate),
-        time: formatTime(ride.departureDate),
-        price: `₡${ride.price.toLocaleString("es-CR")}`,
-        seatsAvailable: ride.availableSeats,
-        driverName: ride.driver.name,
-        driverPhoto: driverPhotoBase64,
-      }) as any,
-      {
-        width: 1200,
-        height: 630,
-        fonts: [
-          {
-            name: "Inter",
-            data: boldFont,
-            weight: 700,
-            style: "normal",
-          },
-          {
-            name: "Inter",
-            data: regularFont,
-            weight: 400,
-            style: "normal",
-          },
+        chips: [
+          { icon: CALENDAR_ICON, label: formatDateShort(ride.departureDate) },
+          { icon: CLOCK_ICON, label: formatTime(ride.departureDate) },
         ],
-      },
+        price: formatPrice(ride.price),
+        personOverline: "Conduce",
+        personName: ride.driver.name,
+        personPhoto: driverPhoto,
+        personVerified: true,
+        seatStack: {
+          passengers: visiblePassengers.map((passenger, index) => ({
+            name: passenger.name,
+            photo: passengerPhotos[index] ?? null,
+          })),
+          freeSeats: ride.availableSeats,
+        },
+      }),
     );
 
-    const resvg = new Resvg(svg, {
-      fitTo: { mode: "width", value: 1200 },
-    });
-    const pngBuffer = resvg.render().asPng();
-
-    return new Response(new Uint8Array(pngBuffer), {
-      status: 200,
-      headers: {
-        "Content-Type": "image/png",
-        "Cache-Control": "public, max-age=3600, s-maxage=86400",
-        "CDN-Cache-Control": "public, max-age=86400",
-      },
-    });
+    return pngResponse(png);
   } catch (error) {
-    console.error("OG image generation failed:", error);
+    console.error("[og/ride] generation failed", error);
     return new Response("Error generating image", { status: 500 });
   }
 };

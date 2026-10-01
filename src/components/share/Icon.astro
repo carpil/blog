@@ -1,0 +1,43 @@
+---
+import { FILL_ICONS, STROKE_ICONS, type IconName } from "./icons";
+
+interface Props {
+  name: IconName;
+  size?: number;
+  class?: string;
+}
+
+const { name, size = 24, class: className } = Astro.props;
+
+const strokePaths = STROKE_ICONS[name];
+const fillPaths = FILL_ICONS[name];
+---
+
+{
+  strokePaths && (
+    <svg
+      class={className}
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="1.8"
+      aria-hidden="true"
+      set:html={strokePaths}
+    />
+  )
+}
+{
+  fillPaths && (
+    <svg
+      class={className}
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="currentColor"
+      aria-hidden="true"
+      set:html={fillPaths}
+    />
+  )
+}

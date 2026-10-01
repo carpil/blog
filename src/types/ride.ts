@@ -10,12 +10,11 @@ export interface Location {
   };
 }
 
-export interface Driver {
+export interface UserInfo {
   id: string;
   name: string;
-  profilePicture?: string;
-  phone?: string;
-  rating?: number;
+  profilePicture?: string | null;
+  averageRating?: number | null;
 }
 
 export interface Ride {
@@ -27,8 +26,8 @@ export interface Ride {
   price: number;
   departureDate: string; // ISO 8601
   status: "active" | "canceled" | "completed";
-  driver: Driver;
-  passengers: Driver[];
+  driver: UserInfo;
+  passengers: UserInfo[];
   chatId: string;
   deletedAt: string | null;
 }

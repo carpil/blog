@@ -1,0 +1,354 @@
+---
+import Avatar from "./Avatar.astro";
+import Icon from "./Icon.astro";
+import type { CardProps } from "./types";
+import VerifiedShield from "./VerifiedShield.astro";
+
+type Props = CardProps;
+
+const {
+  badge,
+  origin,
+  destination,
+  chips,
+  personOverline,
+  personName,
+  personPhoto,
+  personVerified = false,
+  seatStack = null,
+} = Astro.props;
+
+const MAX_STACK = 4;
+const stackedPassengers = seatStack?.passengers.slice(0, MAX_STACK) ?? [];
+const dashedSeats = seatStack
+  ? Math.max(0, Math.min(seatStack.freeSeats, MAX_STACK - stackedPassengers.length))
+  : 0;
+---
+
+<article class="card">
+  <span class="glow glow--top" aria-hidden="true"></span>
+  <span class="glow glow--bottom" aria-hidden="true"></span>
+
+  <p class="badge">
+    <span class="badge__dot" aria-hidden="true"></span>
+    {badge}
+  </p>
+
+  <div class="route">
+    <div class="route__row">
+      <span class="dot dot--origin" aria-hidden="true"></span>
+      <div class="route__text">
+        <p class="route__label">DESDE</p>
+        <p class="route__place">{origin}</p>
+      </div>
+    </div>
+    <span class="route__connector" aria-hidden="true"></span>
+    <div class="route__row">
+      <span class="dot dot--destination" aria-hidden="true"></span>
+      <div class="route__text">
+        <p class="route__label">HACIA</p>
+        <p class="route__place">{destination}</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="facts">
+    {
+      chips.map((chip) => (
+        <span class="facts__chip">
+          <Icon name={chip.icon} size={16} />
+          {chip.label}
+        </span>
+      ))
+    }
+  </div>
+
+  <footer class="person">
+    <div class="person__identity">
+      <Avatar name={personName} photo={personPhoto} size={44} class="person__avatar" />
+      <div class="person__text">
+        <p class="person__overline">{personOverline}</p>
+        <p class="person__name">
+          <span class="person__name-text">{personName}</span>
+          {personVerified && <VerifiedShield size={15} class="person__shield" />}
+        </p>
+      </div>
+    </div>
+
+    {
+      seatStack && (
+        <div class="seats" aria-label="Cupos del viaje">
+          {stackedPassengers.map((passenger) => (
+            <Avatar
+              name={passenger.name}
+              photo={passenger.photo}
+              size={28}
+              borderWidth={1.5}
+              class="seats__avatar"
+            />
+          ))}
+          {Array.from({ length: dashedSeats }).map(() => (
+            <span class="seats__free" aria-hidden="true" />
+          ))}
+        </div>
+      )
+    }
+  </footer>
+</article>
+
+<style>
+  .card {
+    position: relative;
+    overflow: hidden;
+    border-radius: 24px;
+    padding: 24px;
+    background: var(--gradient-card);
+    box-shadow: var(--shadow-lume);
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    color: #ffffff;
+  }
+
+  .glow {
+    position: absolute;
+    border-radius: 50%;
+    pointer-events: none;
+  }
+
+  .glow--top {
+    top: -90px;
+    right: -70px;
+    width: 240px;
+    height: 240px;
+    background: rgba(255, 255, 255, 0.13);
+  }
+
+  .glow--bottom {
+    bottom: -110px;
+    left: -80px;
+    width: 220px;
+    height: 220px;
+    background: rgba(255, 255, 255, 0.07);
+  }
+
+  .badge {
+    position: relative;
+    align-self: flex-start;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 14px;
+    border-radius: 9999px;
+    background: rgba(255, 255, 255, 0.2);
+    font-weight: 700;
+    font-size: 11px;
+    letter-spacing: 1.1px;
+    text-transform: uppercase;
+  }
+
+  .badge__dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--tertiary);
+  }
+
+  .route {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .route__row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    min-width: 0;
+  }
+
+  .route__text {
+    min-width: 0;
+  }
+
+  .dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .dot--origin {
+    background: #ffffff;
+  }
+
+  .dot--destination {
+    border: 3px solid var(--tertiary);
+  }
+
+  .route__connector {
+    width: 2px;
+    height: 22px;
+    margin-left: 5px;
+    border-radius: 2px;
+    background: rgba(255, 255, 255, 0.4);
+  }
+
+  .route__label {
+    margin: 0;
+    font-weight: 700;
+    font-size: 11px;
+    letter-spacing: 1.6px;
+    color: rgba(241, 235, 255, 0.7);
+  }
+
+  .route__place {
+    margin: 0;
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: 30px;
+    line-height: 1.1;
+    letter-spacing: -0.8px;
+  }
+
+  .facts {
+    position: relative;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px 20px;
+    padding: 14px 16px;
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.16);
+  }
+
+  .facts__chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+    font-size: 14px;
+  }
+
+  .person {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding-top: 16px;
+    border-top: 1px solid rgba(255, 255, 255, 0.25);
+  }
+
+  .person__identity {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+  }
+
+  .person__text {
+    min-width: 0;
+  }
+
+  .person__overline {
+    margin: 0;
+    font-size: 12px;
+    color: rgba(241, 235, 255, 0.75);
+  }
+
+  .person__name {
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 700;
+    font-size: 16px;
+    min-width: 0;
+  }
+
+  .person__name-text {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .person__shield {
+    flex-shrink: 0;
+  }
+
+  .seats {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+  }
+
+  .seats :global(.seats__avatar:not(:first-child)),
+  .seats__free {
+    margin-left: -8px;
+  }
+
+  .seats__free {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: 1.5px dashed rgba(255, 255, 255, 0.55);
+    flex-shrink: 0;
+  }
+
+  @media (min-width: 1024px) {
+    .card {
+      padding: 28px;
+      gap: 20px;
+    }
+
+    .glow--top {
+      top: -100px;
+      right: -80px;
+      width: 280px;
+      height: 280px;
+    }
+
+    .glow--bottom {
+      bottom: -120px;
+      left: -90px;
+      width: 260px;
+      height: 260px;
+    }
+
+    .route__connector {
+      height: 24px;
+    }
+
+    .route__place {
+      font-size: 34px;
+    }
+
+    .facts {
+      padding: 14px 18px;
+      gap: 12px 22px;
+    }
+
+    .person {
+      padding-top: 18px;
+    }
+
+    .person__identity :global(.person__avatar) {
+      width: 48px;
+      height: 48px;
+      font-size: 17px;
+    }
+
+    .person__name {
+      font-size: 17px;
+    }
+
+    .seats :global(.seats__avatar),
+    .seats__free {
+      width: 30px;
+      height: 30px;
+      font-size: 11px;
+    }
+  }
+</style>
