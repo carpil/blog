@@ -25,6 +25,8 @@
     "@vercel/analytics": "1.6.1",
     "astro": "5.16.15",
     "canvas-confetti": "^1.9.4",
+    "firebase": "^12.19.0",
+    "posthog-js": "^1.435.3",
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "react-hook-form": "7.71.1",
