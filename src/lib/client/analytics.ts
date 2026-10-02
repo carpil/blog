@@ -28,6 +28,7 @@ export type WebEvent =
   | "web_ride_booked"
   | "web_booking_failed"
   | "web_booking_cancelled"
+  | "web_session_reset"
   | "web_whatsapp_intent";
 
 export function track(event: WebEvent, properties: Record<string, unknown> = {}): void {
