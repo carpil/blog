@@ -67,6 +67,10 @@ function errorCode(error: unknown): string {
   return (error as { code?: string } | null)?.code ?? "unknown";
 }
 
+// Once the same number is verified in the app, this web account is folded into the app
+// one and disabled. Its session has to go so the next phone sign-in lands on the app uid.
+const SESSION_GONE = new Set(["account_merged", "auth/user-disabled", "auth/user-token-expired"]);
+
 export default function BookSeat({ rideId, driverFirstName, driverWhatsapp, whatsappMessage, initialFreeSeats }: Props) {
   const [step, setStep] = useState<Step>("idle");
   const [user, setUser] = useState<User | null>(null);
@@ -79,6 +83,7 @@ export default function BookSeat({ rideId, driverFirstName, driverWhatsapp, what
   const [skipPhone, setSkipPhone] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [confirmingCancel, setConfirmingCancel] = useState(false);
   const verifier = useRef<RecaptchaVerifier | null>(null);
   const confirmation = useRef<ConfirmationResult | null>(null);
@@ -89,8 +94,35 @@ export default function BookSeat({ rideId, driverFirstName, driverWhatsapp, what
     setStep("error");
   };
 
+  const restartSignIn = async (reason: string) => {
+    track("web_session_reset", { ride_id: rideId, reason });
+    await signOut(firebaseAuth()).catch(() => {});
+    setFormError(null);
+    setNotice("Tu cuenta ahora está en la app de Carpil. Entrá de nuevo con tu número para seguir.");
+    setStep("phone");
+  };
+
+  // A merged web account loses its verified phone, but its cached token stays valid for
+  // up to an hour, so the API answers verification_required instead of account_merged.
+  // Only a forced refresh tells the two apart: Firebase rejects it for a disabled user.
+  const failVerification = async (reason: string) => {
+    const gone = await firebaseAuth()
+      .currentUser?.getIdToken(true)
+      .then(() => null)
+      .catch((error: unknown) => errorCode(error));
+    if (gone && SESSION_GONE.has(gone)) {
+      await restartSignIn(gone);
+      return;
+    }
+    fail("No pudimos confirmar tu correo. Probá entrar con tu número de teléfono.", reason);
+  };
+
   const handleBookingError = (error: unknown) => {
     const reason = errorCode(error);
+    if (SESSION_GONE.has(reason)) {
+      void restartSignIn(reason);
+      return;
+    }
     if (reason === "already_passenger") {
       setStep("done");
       return;
@@ -106,7 +138,7 @@ export default function BookSeat({ rideId, driverFirstName, driverWhatsapp, what
       return;
     }
     if (reason === "verification_required") {
-      fail("No pudimos confirmar tu correo. Probá entrar con tu número de teléfono.", reason);
+      void failVerification(reason);
       return;
     }
     fail(`Algo salió mal. Probá de nuevo o escribile a ${driverFirstName} por WhatsApp.`, reason);
@@ -268,6 +300,7 @@ export default function BookSeat({ rideId, driverFirstName, driverWhatsapp, what
       verifier.current ??= new RecaptchaVerifier(auth, "bk-recaptcha", { size: "invisible" });
       confirmation.current = await signInWithPhoneNumber(auth, toE164(phone), verifier.current);
       rememberPhone(localDigits(phone));
+      setNotice(null);
       setCode("");
       setStep("code");
     } catch (error) {
@@ -342,7 +375,12 @@ export default function BookSeat({ rideId, driverFirstName, driverWhatsapp, what
       setOnBoard(false);
       setStep("idle");
     } catch (error) {
-      fail("No pudimos cancelar tu reserva. Probá de nuevo en un momento.", errorCode(error));
+      const reason = errorCode(error);
+      if (SESSION_GONE.has(reason)) {
+        void restartSignIn(reason);
+        return;
+      }
+      fail("No pudimos cancelar tu reserva. Probá de nuevo en un momento.", reason);
     }
   };
 
@@ -443,7 +481,7 @@ export default function BookSeat({ rideId, driverFirstName, driverWhatsapp, what
       {step === "phone" && (
         <form className="bk-panel" onSubmit={sendCode} noValidate>
           <p className="bk-panel__title">Tu número de teléfono</p>
-          <p className="bk-panel__hint">Te mandamos un código por mensaje de texto.</p>
+          <p className="bk-panel__hint">{notice ?? "Te mandamos un código por mensaje de texto."}</p>
           <label className="bk-field">
             <span className="bk-field__label">Número (Costa Rica)</span>
             <input
