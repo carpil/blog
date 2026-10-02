@@ -102,6 +102,21 @@ export default function BookSeat({ rideId, driverFirstName, driverWhatsapp, what
     setStep("phone");
   };
 
+  // A merged web account loses its verified phone, but its cached token stays valid for
+  // up to an hour, so the API answers verification_required instead of account_merged.
+  // Only a forced refresh tells the two apart: Firebase rejects it for a disabled user.
+  const failVerification = async (reason: string) => {
+    const gone = await firebaseAuth()
+      .currentUser?.getIdToken(true)
+      .then(() => null)
+      .catch((error: unknown) => errorCode(error));
+    if (gone && SESSION_GONE.has(gone)) {
+      await restartSignIn(gone);
+      return;
+    }
+    fail("No pudimos confirmar tu correo. Probá entrar con tu número de teléfono.", reason);
+  };
+
   const handleBookingError = (error: unknown) => {
     const reason = errorCode(error);
     if (SESSION_GONE.has(reason)) {
@@ -123,7 +138,7 @@ export default function BookSeat({ rideId, driverFirstName, driverWhatsapp, what
       return;
     }
     if (reason === "verification_required") {
-      fail("No pudimos confirmar tu correo. Probá entrar con tu número de teléfono.", reason);
+      void failVerification(reason);
       return;
     }
     fail(`Algo salió mal. Probá de nuevo o escribile a ${driverFirstName} por WhatsApp.`, reason);
