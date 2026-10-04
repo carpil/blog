@@ -1,0 +1,369 @@
+.face {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border-radius: 9999px;
+  object-fit: cover;
+  font-family: var(--font-body);
+  font-weight: 700;
+  line-height: 1;
+}
+
+.eyebrow {
+  margin: 0;
+  font-weight: 700;
+  font-size: 11px;
+  line-height: 16px;
+  letter-spacing: 1.1px;
+  text-transform: uppercase;
+  color: var(--on-surface-variant);
+}
+
+/* Ride card, as in the app */
+
+.rc {
+  box-sizing: border-box;
+  width: 100%;
+  display: grid;
+  grid-template-columns: 14px minmax(0, 1fr);
+  column-gap: 16px;
+  row-gap: 12px;
+  padding: 20px;
+  border-radius: 24px;
+  background: var(--surface-container-low);
+  border: 1px solid var(--border-strong);
+  box-shadow: var(--shadow-lume);
+  color: var(--on-surface);
+  font-family: var(--font-body);
+}
+
+a.rc {
+  transition: transform 150ms ease, border-color 150ms ease;
+}
+
+a.rc:active {
+  transform: scale(0.98);
+}
+
+a.rc:hover {
+  border-color: rgba(108, 71, 255, 0.6);
+}
+
+.rc p {
+  margin: 0;
+}
+
+.rc__dot {
+  width: 14px;
+  height: 14px;
+  box-sizing: border-box;
+  margin-top: 5px;
+  border-radius: 9999px;
+  background: var(--surface-container-low);
+}
+
+.rc__dot--origin {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--primary-container);
+}
+
+.rc__dot--origin span {
+  width: 5px;
+  height: 5px;
+  border-radius: 9999px;
+  background: var(--primary-container);
+}
+
+.rc__dot--destination {
+  border: 2px solid var(--tertiary);
+}
+
+.rc__spine {
+  justify-self: center;
+  align-self: stretch;
+  width: 2px;
+  min-height: 10px;
+  margin: 2px 0;
+  border-radius: 1px;
+  background: rgba(108, 71, 255, 0.35);
+}
+
+.rc__row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.rc__text {
+  flex: 1;
+  min-width: 0;
+}
+
+.rc__place {
+  font-weight: 600;
+  font-size: 17px;
+  line-height: 24px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.rc__when {
+  margin-top: 3px !important;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--on-surface-variant);
+}
+
+.rc__driver {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.rc__driver-face {
+  font-size: 11px !important;
+}
+
+.rc__price {
+  flex-shrink: 0;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 22px;
+  line-height: 24px;
+  letter-spacing: -0.3px;
+  color: var(--primary);
+}
+
+.rc__foot {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-top: 2px;
+}
+
+.rc__note {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  font-weight: 700;
+  font-size: 11px;
+  line-height: 16px;
+  letter-spacing: 1.1px;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.rc__note--warm {
+  color: var(--tertiary);
+}
+
+.rc__note--muted {
+  color: var(--outline);
+}
+
+.rc__note-dot {
+  width: 6px;
+  height: 6px;
+  flex-shrink: 0;
+  border-radius: 9999px;
+  background: var(--tertiary);
+}
+
+.rc__stack {
+  display: flex;
+  align-items: center;
+}
+
+.rc__face {
+  box-sizing: content-box;
+  border: 2px solid var(--surface-container-low);
+  font-size: 9px !important;
+}
+
+.rc__face + .rc__face {
+  margin-left: -8px;
+}
+
+.rc__face--me {
+  border-color: var(--primary);
+}
+
+.rc__face--free {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 9999px;
+  border-style: dashed;
+  border-color: rgba(147, 142, 162, 0.4);
+  background: var(--surface-container);
+  color: var(--on-surface-variant);
+  font-weight: 700;
+}
+
+.rc__cta {
+  grid-column: 1 / -1;
+  margin-top: 4px;
+  padding: 12px;
+  border-radius: 9999px;
+  background: var(--gradient-primary);
+  box-shadow: var(--shadow-lume);
+  color: var(--on-primary-container);
+  font-weight: 600;
+  font-size: 15px;
+  line-height: 20px;
+  text-align: center;
+}
+
+/* Status chips above the card */
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 9999px;
+  background: var(--surface-container-highest);
+  color: var(--on-surface);
+  font-weight: 700;
+  font-size: 11px;
+  line-height: 16px;
+  letter-spacing: 1.1px;
+  text-transform: uppercase;
+}
+
+.chip--warm {
+  background: rgba(255, 182, 145, 0.16);
+  color: var(--tertiary);
+}
+
+.chip__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 9999px;
+  background: var(--tertiary);
+}
+
+/* Who is going */
+
+.who {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px;
+  border-radius: 24px;
+  background: var(--surface-container-low);
+  border: 1px solid var(--border-ghost);
+}
+
+.who p {
+  margin: 0;
+}
+
+.who__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 12px;
+}
+
+.who__count {
+  margin-top: 2px !important;
+  font-weight: 600;
+  font-size: 16px;
+  line-height: 24px;
+}
+
+.who__left {
+  font-weight: 600;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--tertiary);
+}
+
+.who__bar {
+  display: flex;
+  gap: 4px;
+}
+
+.who__seg {
+  flex: 1;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--surface-container-highest);
+}
+
+.who__seg--taken {
+  background: var(--primary-container);
+}
+
+.who__seats {
+  display: flex;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.who__seat {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.who__seat .face {
+  font-size: 14px !important;
+}
+
+.who__name {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 500;
+  font-size: 11px;
+  color: var(--on-surface-variant);
+}
+
+.who__name--you {
+  font-weight: 600;
+  color: var(--primary);
+}
+
+.who__name--free {
+  color: var(--outline);
+}
+
+.who__free {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  box-sizing: border-box;
+  border-radius: 9999px;
+  border: 2px dashed rgba(147, 142, 162, 0.5);
+}
+
+.who__free--you {
+  border-color: var(--primary);
+  color: var(--primary);
+}

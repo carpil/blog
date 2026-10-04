@@ -4,5 +4,5 @@ export const RIDE_SEATS_EVENT = "carpil:ride-seats";
 
 export interface RideSeatsDetail {
   freeSeats: number;
-  passengers: { name: string; photo: string | null }[];
+  passengers: { id: string | null; name: string; photo: string | null }[];
 }

@@ -23,14 +23,14 @@ export async function fetchImageDataUri(
 
 export async function renderOgPng(
   element: unknown,
+  size: { width: number; height: number } = { width: 1200, height: 630 },
 ): Promise<Uint8Array<ArrayBuffer>> {
   const svg = await satori(element as Parameters<typeof satori>[0], {
-    width: 1200,
-    height: 630,
+    ...size,
     fonts: loadOgFonts(),
   });
 
-  const resvg = new Resvg(svg, { fitTo: { mode: "width", value: 1200 } });
+  const resvg = new Resvg(svg, { fitTo: { mode: "width", value: size.width } });
   const rendered = resvg.render().asPng();
 
   const png = new Uint8Array(rendered.byteLength);

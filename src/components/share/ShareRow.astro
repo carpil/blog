@@ -8,50 +8,51 @@ interface Props {
   text: string;
   url: string;
   title: string;
+  // A 1080×1920 image of what is being shared; turns the Instagram item into "Historia".
+  storyImage?: string;
+  // The "Más" item that opens the system share sheet.
+  native?: boolean;
 }
 
-const { label, text, url, title } = Astro.props;
+const { label, text, url, title, storyImage, native = true } = Astro.props;
 
 interface ShareAction {
   icon: IconName;
   mobileLabel: string;
   desktopLabel: string | null;
   href?: string;
-  action?: "copy" | "native";
+  action?: "copy" | "native" | "story";
 }
 
-const actions: ShareAction[] = [
-  {
-    icon: "message-circle",
-    mobileLabel: "WhatsApp",
-    desktopLabel: "WhatsApp",
-    href: whatsappShareUrl(text, url),
-  },
-  {
-    icon: "facebook",
-    mobileLabel: "Facebook",
-    desktopLabel: "Facebook",
-    href: facebookShareUrl(url),
-  },
-  {
-    icon: "instagram",
-    mobileLabel: "Instagram",
-    desktopLabel: null,
-    action: "copy",
-  },
-  {
-    icon: "link",
-    mobileLabel: "Copiar",
-    desktopLabel: "Copiar enlace",
-    action: "copy",
-  },
-  {
-    icon: "share",
-    mobileLabel: "Más",
-    desktopLabel: null,
-    action: "native",
-  },
-];
+const whatsapp: ShareAction = {
+  icon: "message-circle",
+  mobileLabel: "WhatsApp",
+  desktopLabel: "WhatsApp",
+  href: whatsappShareUrl(text, url),
+};
+const facebook: ShareAction = {
+  icon: "facebook",
+  mobileLabel: "Facebook",
+  desktopLabel: "Facebook",
+  href: facebookShareUrl(url),
+};
+const copy: ShareAction = {
+  icon: "link",
+  mobileLabel: "Copiar",
+  desktopLabel: "Copiar enlace",
+  action: "copy",
+};
+
+const actions: ShareAction[] = storyImage
+  ? [
+      whatsapp,
+      { icon: "instagram", mobileLabel: "Historia", desktopLabel: "Imagen para historia", action: "story" },
+      facebook,
+      copy,
+    ]
+  : [whatsapp, facebook, { icon: "instagram", mobileLabel: "Instagram", desktopLabel: null, action: "copy" }, copy];
+
+if (native) actions.push({ icon: "share", mobileLabel: "Más", desktopLabel: null, action: "native" });
 ---
 
 <section
@@ -60,6 +61,7 @@ const actions: ShareAction[] = [
   data-url={url}
   data-text={text}
   data-title={title}
+  data-story={storyImage}
 >
   <p class="share__label">{label}</p>
 
@@ -103,6 +105,7 @@ const actions: ShareAction[] = [
     const url = root.dataset.url!;
     const text = root.dataset.text!;
     const title = root.dataset.title!;
+    const story = root.dataset.story;
     const toast = root.querySelector<HTMLElement>("[data-toast]")!;
     let toastTimer = 0;
 
@@ -121,8 +124,48 @@ const actions: ShareAction[] = [
     );
     if (nativeButton && !navigator.share) nativeButton.hidden = true;
 
+    // Safari only opens the share sheet straight from a tap, so the image has to be in
+    // hand before the tap instead of fetched after it.
+    let storyFile: File | null = null;
+    const canShareFiles = typeof navigator.canShare === "function";
+    if (story && canShareFiles) {
+      const load = () =>
+        fetch(story)
+          .then((res) => (res.ok ? res.blob() : Promise.reject(res.status)))
+          .then((blob) => {
+            storyFile = new File([blob], "carpil-historia.png", { type: "image/png" });
+          })
+          .catch(() => {});
+      if (typeof window.requestIdleCallback === "function") window.requestIdleCallback(load);
+      else setTimeout(load, 1500);
+    }
+
+    const shareStory = async () => {
+      // The link goes on the clipboard so it can be pasted into the link sticker.
+      navigator.clipboard?.writeText(url).catch(() => {});
+      if (storyFile && navigator.canShare({ files: [storyFile] })) {
+        try {
+          await navigator.share({ files: [storyFile] });
+          showToast("Enlace copiado — pegalo en el sticker de enlace");
+        } catch {
+          // El usuario canceló la hoja de compartir.
+        }
+        return;
+      }
+      const link = document.createElement("a");
+      link.href = story!;
+      link.download = "carpil-historia.png";
+      link.click();
+      showToast("Imagen descargada y enlace copiado");
+    };
+
     root.querySelectorAll<HTMLButtonElement>("[data-action]").forEach((button) => {
       button.addEventListener("click", async () => {
+        if (button.dataset.action === "story") {
+          await shareStory();
+          return;
+        }
+
         if (button.dataset.action === "native") {
           try {
             await navigator.share({ title, text, url });

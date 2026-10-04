@@ -14,6 +14,8 @@ export interface OgSeatPassenger {
 export interface OgSeatStack {
   passengers: OgSeatPassenger[];
   freeSeats: number;
+  // "2 de 4 tomados", next to the faces.
+  takenLabel?: string | null;
 }
 
 export interface OgCardProps {
@@ -32,7 +34,7 @@ export interface OgCardProps {
 const WHITE_70 = "rgba(241,235,255,0.7)";
 const MAX_STACK = 4;
 
-function truncate(value: string, max: number): string {
+export function truncate(value: string, max: number): string {
   if (value.length <= max) return value;
   return `${value.slice(0, max - 1).trimEnd()}…`;
 }
@@ -56,7 +58,7 @@ function placeFontSize(origin: string, destination: string): number {
   return 62;
 }
 
-function Avatar({
+export function Avatar({
   photo,
   name,
   size,
@@ -249,7 +251,12 @@ export function buildOgCard(props: OgCardProps) {
           </span>
         </div>
 
-        <div style={{ display: "flex", alignItems: "center", gap: "24px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "20px" }}>
+          {seatStack?.takenLabel && (
+            <span style={{ fontWeight: 600, fontSize: "20px", color: "rgba(241,235,255,0.8)", whiteSpace: "nowrap" }}>
+              {seatStack.takenLabel}
+            </span>
+          )}
           {seatStack && (
             <div style={{ display: "flex", alignItems: "center" }}>
               {stacked.map((passenger, index) => (

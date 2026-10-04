@@ -1,21 +1,19 @@
 ---
 import BookSeat from "../../components/booking/BookSeat";
-import RideClosed from "../../components/booking/RideClosed.astro";
 import TrackView from "../../components/booking/TrackView";
+import WhatsAppLead from "../../components/booking/WhatsAppLead";
+import Face from "../../components/ride/Face";
+import RideCard, { DRIVER_COLORS } from "../../components/ride/RideCard";
+import RideSeatsLive from "../../components/ride/RideSeatsLive";
 import NotFound from "../../components/share/NotFound.astro";
-import SharePage from "../../components/share/SharePage.astro";
-import type { SharePageProps } from "../../components/share/types";
+import ShareRow from "../../components/share/ShareRow.astro";
 import ShareLayout from "../../layouts/ShareLayout.astro";
-import { getRidePage } from "../../lib/api";
-import {
-  formatDateShort,
-  formatPrice,
-  formatTime,
-  freeSeats,
-  seatsLabel,
-} from "../../lib/format";
-import { rideWhatsappMessage, stateBadge } from "../../lib/ride-copy";
+import { getDriverPage, getRidePage } from "../../lib/api";
+import { departureWhen, formatDateShort, formatPrice, formatTime, freeSeats, seatsLabel, seatsLeftLabel } from "../../lib/format";
+import { rideCardProps } from "../../lib/ride-card";
+import { CLOSED_COPY, otherRidesMessage, rideShareText, rideWhatsappMessage, stateBadge } from "../../lib/ride-copy";
 import { deepLink, shareUrl } from "../../lib/share-links";
+import type { Ride } from "../../types/ride";
 
 const { id } = Astro.params;
 const page = await getRidePage(id!);
@@ -29,115 +27,547 @@ const seats = ride ? freeSeats(ride) : 0;
 const origin = ride?.origin?.name.primary ?? "Origen";
 const destination = ride?.destination?.name.primary ?? "Destino";
 
-const title = ride
-  ? `${origin} → ${destination} — Carpil`
-  : "Viaje no encontrado — Carpil";
+const title = ride ? `${origin} → ${destination} — Carpil` : "Viaje no encontrado — Carpil";
 
+// WhatsApp caches the preview, so it keeps absolute dates; "mañana" only lives on the page.
 const description = ride
   ? `${formatDateShort(ride.departureDate)} · ${formatTime(ride.departureDate)} · ${formatPrice(ride.price)} por campo · ${seatsLabel(seats)}`
   : "Este viaje no existe o fue eliminado por el conductor.";
 
-const ogImage = ride
-  ? new URL(`/api/og/ride/${id}.png`, Astro.url.origin).href
-  : undefined;
+const ogImage = ride ? new URL(`/api/og/ride/${id}.png`, Astro.url.origin).href : undefined;
+const storyImage = ride ? `/api/og/ride/story/${id}.png` : undefined;
 
-const sharePage: SharePageProps | null =
-  ride && driver && state
-    ? {
-        deepLink: deepLink("ride", ride.id),
-        shareUrl: shareUrl("ride", ride.id),
-        shareTitle: title,
-        shareText: `Voy de ${origin} a ${destination} el ${formatDateShort(ride.departureDate)}. Apartá tu campo acá:`,
-        shareLabel: "O compartí este viaje",
-        ctaLabel: "Unirme al viaje",
-        captionMobile: "Se abre en la app. Si no la tenés, te llevamos a la tienda.",
-        captionDesktop: "Escaneá o abrí este enlace en tu celular para unirte desde la app.",
-        card: {
-          badge: stateBadge(ride, state),
-          origin,
-          destination,
-          chips: [
-            { icon: "calendar", label: formatDateShort(ride.departureDate) },
-            { icon: "clock", label: formatTime(ride.departureDate) },
-            { icon: "banknote", label: `${formatPrice(ride.price)} por campo` },
-            ...(state === "open" ? [{ icon: "users" as const, label: seatsLabel(seats) }] : []),
-          ],
-          personOverline: "Conduce",
-          personName: driver.name,
-          personPhoto: driver.profilePicture,
-          personVerified: driver.kycVerified,
-          seatStack: {
-            passengers: ride.passengers.map((passenger) => ({
-              name: passenger.name,
-              photo: passenger.profilePicture,
-            })),
-            freeSeats: state === "open" ? seats : 0,
-          },
-        },
-        side: {
-          label: "Viajá con Carpil",
-          heading: "Sabés con quién viajás, cuánto pagás y cuándo salís.",
-          body: `Apartás tu campo sin descargar nada y le pagás directo a ${driver.firstName}.`,
-          bullets: [
-            { icon: "shield-check", text: "Conductores verificados con cédula y licencia" },
-            { icon: "banknote", text: "Pagás el precio publicado, sin sorpresas" },
-            { icon: "message-circle", text: "Si preferís, coordinás por WhatsApp" },
-          ],
-        },
-      }
-    : null;
+const card = ride && driver ? rideCardProps(ride, driver) : null;
+const leaves = ride ? departureWhen(ride.departureDate) : null;
+const departureChip = leaves ? `Sale ${leaves.soon ?? leaves.day}` : null;
+
+// A closed ride points at the driver's other rides that still have room; when it already
+// left, the next one on the same route goes first.
+let sameRoute: Ride | null = null;
+let otherRides: Ride[] = [];
+if (ride && driver && state && state !== "open" && driver.slug) {
+  const driverPage = await getDriverPage(driver.slug);
+  const open = (driverPage?.rides ?? []).filter((other) => other.id !== ride.id && freeSeats(other) > 0);
+  if (state === "departed") {
+    sameRoute =
+      open.find((other) => other.origin?.id === ride.origin?.id && other.destination?.id === ride.destination?.id) ?? null;
+  }
+  otherRides = open.filter((other) => other !== sameRoute).slice(0, sameRoute ? 2 : 3);
+}
+const hasOthers = sameRoute !== null || otherRides.length > 0;
 ---
 
 <ShareLayout title={title} description={description} image={ogImage}>
   {
-    sharePage && ride && driver && state ? (
-      <>
+    ride && driver && state && card ? (
+      <main class:list={["page", { "page--docked": state === "open" }]}>
         <TrackView client:idle event="web_ride_opened" properties={{ ride_id: ride.id, state, driver_slug: driver.slug }} />
-        <SharePage {...sharePage}>
-          <Fragment slot="actions">
-            {
-              state === "open" ? (
-                <BookSeat
-                  client:only="react"
-                  rideId={ride.id}
-                  driverFirstName={driver.firstName}
-                  driverWhatsapp={driver.whatsapp}
-                  whatsappMessage={rideWhatsappMessage(driver.firstName, ride)}
-                  initialFreeSeats={seats}
-                >
-                  <div slot="fallback" class="booking-placeholder" aria-hidden="true">
-                    Reservar mi campo
+
+        <header class="nav">
+          <a class="brand" href="/">
+            <img class="brand__mark" src="/logo-carpil.png" alt="" width="32" height="32" />
+            <span class="brand__name">Carpil</span>
+          </a>
+          {state === "open" && (
+            <a class="pill" href={deepLink("ride", ride.id)} data-deep-link={deepLink("ride", ride.id)}>
+              Abrir en la app
+            </a>
+          )}
+        </header>
+
+        {state === "open" ? (
+          <>
+            <RideSeatsLive client:idle card={card} passengers={card.passengers} departureChip={departureChip} />
+
+            <section class="panel">
+              <a class="row" href={driver.slug ? `/${driver.slug}` : undefined}>
+                <span class="driver-face">
+                  <Face name={driver.name} photo={driver.profilePicture} size={48} colors={DRIVER_COLORS} />
+                  {driver.kycVerified && (
+                    <span class="verified" aria-label="Verificado">
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="#2f009b" aria-hidden="true">
+                        <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-2 16l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z" />
+                      </svg>
+                    </span>
+                  )}
+                </span>
+                <span class="row__text">
+                  <span class="row__over">Conduce</span>
+                  <span class="row__title">{driver.name}</span>
+                  {driver.averageRating != null && driver.ratingsCount > 0 && (
+                    <span class="row__meta">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="#ffb691" aria-hidden="true">
+                        <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
+                      </svg>
+                      {driver.averageRating.toFixed(1)} · {driver.ratingsCount}{" "}
+                      {driver.ratingsCount === 1 ? "calificación" : "calificaciones"}
+                    </span>
+                  )}
+                </span>
+                {driver.slug && (
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#938ea2" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+                    <polyline points="9 18 15 12 9 6" />
+                  </svg>
+                )}
+              </a>
+              {ride.meetingPoint && (
+                <>
+                  <span class="panel__divider" aria-hidden="true" />
+                  <div class="row">
+                    <span class="tile tile--warm" aria-hidden="true">
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                        <circle cx="12" cy="10" r="3" />
+                      </svg>
+                    </span>
+                    <span class="row__text">
+                      <span class="row__over">Punto de encuentro</span>
+                      <span class="row__place">{ride.meetingPoint.name.primary}</span>
+                    </span>
                   </div>
-                </BookSeat>
-              ) : (
-                <RideClosed ride={ride} driver={driver} state={state} />
-              )
-            }
-          </Fragment>
-        </SharePage>
-      </>
+                </>
+              )}
+            </section>
+
+            {driver.whatsapp && (
+              <WhatsAppLead
+                client:visible
+                rideId={ride.id}
+                driverFirstName={driver.firstName}
+                whatsapp={driver.whatsapp}
+                message={rideWhatsappMessage(driver.firstName, ride)}
+                label="Prefiero coordinar por WhatsApp"
+                context="ride"
+              />
+            )}
+
+            <section class="trust">
+              <h2 class="trust__title">Viajá tranquilo</h2>
+              <p class="trust__item">
+                <span class="tile" aria-hidden="true">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" stroke-linejoin="round" />
+                    <path d="m9 12 2 2 4-4" stroke-linecap="round" stroke-linejoin="round" />
+                  </svg>
+                </span>
+                Conductores verificados con cédula y licencia
+              </p>
+              <p class="trust__item">
+                <span class="tile" aria-hidden="true">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="1.5" y="6" width="21" height="12" rx="2" />
+                    <circle cx="12" cy="12" r="2.5" />
+                  </svg>
+                </span>
+                Pagás el precio publicado, directo a {driver.firstName}
+              </p>
+              <p class="trust__item">
+                <span class="tile" aria-hidden="true">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 6v6l4 2" stroke-linecap="round" />
+                    <circle cx="12" cy="12" r="10" />
+                  </svg>
+                </span>
+                Si cambiás de planes, cancelás tu campo desde acá
+              </p>
+            </section>
+
+            <a class="app-card" href={deepLink("ride", ride.id)} data-deep-link={deepLink("ride", ride.id)}>
+              <img src="/logo-carpil.png" alt="" width="40" height="40" />
+              <span class="app-card__text">
+                <span class="app-card__title">¿Ya tenés Carpil?</span>
+                <span class="app-card__hint">Abrí este viaje en la app.</span>
+              </span>
+              <span class="pill">Abrir</span>
+            </a>
+
+            <ShareRow
+              label="Compartí este viaje"
+              text={rideShareText(ride)}
+              title={title}
+              url={shareUrl("ride", ride.id)}
+              storyImage={storyImage}
+              native={false}
+            />
+
+            <p class="tagline">Seguridad · Confianza · Comunidad</p>
+
+            <BookSeat
+              client:only="react"
+              rideId={ride.id}
+              driverFirstName={driver.firstName}
+              driverWhatsapp={driver.whatsapp}
+              driverSlug={driver.slug}
+              whatsappMessage={rideWhatsappMessage(driver.firstName, ride)}
+              initialFreeSeats={seats}
+              card={card}
+              initialPassengers={card.passengers}
+            />
+          </>
+        ) : (
+          <>
+            {state === "departed" && (
+              <p class="banner">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#938ea2" stroke-width="2" aria-hidden="true">
+                  <circle cx="12" cy="12" r="10" />
+                  <path d="M12 7v5l3 3" stroke-linecap="round" />
+                </svg>
+                <span>
+                  <strong>Este viaje ya salió.</strong> Salió el {formatDateShort(ride.departureDate)} a las{" "}
+                  {formatTime(ride.departureDate)}
+                </span>
+              </p>
+            )}
+
+            <div class="dimmed">
+              <RideCard {...card} note={stateBadge(ride, state)} noteTone="muted" />
+            </div>
+
+            {state !== "departed" && (
+              <div class="closed">
+                <h1 class="closed__title">{CLOSED_COPY[state].title}</h1>
+                <p class="closed__text">
+                  {hasOthers ? otherRidesMessage(driver.firstName) : CLOSED_COPY[state].message(driver.firstName)}
+                </p>
+              </div>
+            )}
+            {state === "departed" && !hasOthers && <p class="closed__text">{CLOSED_COPY.departed.message(driver.firstName)}</p>}
+
+            {sameRoute && (
+              <>
+                <p class="eyebrow">
+                  Próximo {origin} → {destination}
+                </p>
+                <RideCard
+                  {...rideCardProps(sameRoute, driver)}
+                  note={seatsLeftLabel(freeSeats(sameRoute))}
+                  cta="Reservar"
+                  href={`/ride/${sameRoute.id}`}
+                />
+              </>
+            )}
+
+            {otherRides.length > 0 && (
+              <>
+                <p class="eyebrow">{sameRoute ? `Más viajes de ${driver.firstName}` : `Otros viajes de ${driver.firstName}`}</p>
+                {otherRides.map((other) => (
+                  <RideCard
+                    {...rideCardProps(other, driver)}
+                    note={seatsLeftLabel(freeSeats(other))}
+                    cta="Reservar"
+                    href={`/ride/${other.id}`}
+                  />
+                ))}
+              </>
+            )}
+
+            {driver.whatsapp && (
+              <WhatsAppLead
+                client:visible
+                rideId={ride.id}
+                driverFirstName={driver.firstName}
+                whatsapp={driver.whatsapp}
+                message={rideWhatsappMessage(driver.firstName, ride)}
+                label={`Escribirle a ${driver.firstName} por WhatsApp`}
+                context="ride_closed"
+              />
+            )}
+          </>
+        )}
+      </main>
     ) : (
       <div class="fallback">
-        <NotFound
-          title="Viaje no encontrado"
-          message="Este viaje no existe o fue eliminado por el conductor."
-        />
+        <NotFound title="Viaje no encontrado" message="Este viaje no existe o fue eliminado por el conductor." />
       </div>
     )
   }
 </ShareLayout>
 
+<script>
+  import { wireDeepLinks } from "../../lib/client/deep-link";
+
+  wireDeepLinks();
+</script>
+
 <style>
-  .booking-placeholder {
-    padding: 18px;
+  .page {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    align-content: start;
+    gap: 16px;
+    max-width: 480px;
+    margin: 0 auto;
+    padding: 16px 20px 40px;
+  }
+
+  .page--docked {
+    padding-bottom: 170px;
+  }
+
+  .nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .brand__mark {
+    display: block;
+    width: 32px;
+    height: 32px;
+    border-radius: 10px;
+  }
+
+  .brand__name {
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: 22px;
+    letter-spacing: -0.8px;
+  }
+
+  .pill {
+    flex-shrink: 0;
+    padding: 8px 14px;
     border-radius: 9999px;
-    background: var(--gradient-primary);
-    color: var(--on-primary);
+    background: var(--surface-container-high);
+    color: var(--primary);
+    font-weight: 600;
+    font-size: 13px;
+  }
+
+  .eyebrow {
+    margin: 4px 0 0;
     font-weight: 700;
-    font-size: 17px;
+    font-size: 11px;
+    line-height: 16px;
+    letter-spacing: 1.1px;
+    text-transform: uppercase;
+    color: var(--on-surface-variant);
+  }
+
+  .panel {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding: 16px 20px;
+    border-radius: 24px;
+    background: var(--surface-container-low);
+    border: 1px solid var(--border-ghost);
+  }
+
+  .panel__divider {
+    height: 1px;
+    background: var(--border-strong);
+  }
+
+  .row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .row__text {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .row__over {
+    font-size: 12px;
+    line-height: 16px;
+    color: var(--on-surface-variant);
+  }
+
+  .row__title {
+    font-weight: 600;
+    font-size: 16px;
+    line-height: 22px;
+  }
+
+  .row__place {
+    font-weight: 600;
+    font-size: 14px;
     line-height: 20px;
+  }
+
+  .row__meta {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+    line-height: 16px;
+    color: var(--on-surface-variant);
+  }
+
+  .driver-face {
+    position: relative;
+    flex-shrink: 0;
+    width: 48px;
+    height: 48px;
+  }
+
+  .driver-face :global(.face) {
+    font-size: 16px !important;
+  }
+
+  .verified {
+    position: absolute;
+    right: -2px;
+    bottom: -2px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    box-sizing: border-box;
+    border-radius: 9999px;
+    background: var(--primary);
+    border: 2px solid var(--surface-container-low);
+  }
+
+  .tile {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    background: var(--surface-container-high);
+    color: var(--primary);
+  }
+
+  .tile--warm {
+    color: var(--tertiary);
+  }
+
+  .trust {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding: 8px 0;
+  }
+
+  .trust__title {
+    margin: 0;
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 20px;
+    line-height: 28px;
+  }
+
+  .trust__item {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin: 0;
+    font-size: 14px;
+    line-height: 20px;
+  }
+
+  .app-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    border-radius: 24px;
+    background: var(--surface-container);
+  }
+
+  .app-card img {
+    display: block;
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+  }
+
+  .app-card__text {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .app-card__title {
+    font-weight: 600;
+    font-size: 14px;
+    line-height: 20px;
+  }
+
+  .app-card__hint {
+    font-size: 12px;
+    line-height: 16px;
+    color: var(--on-surface-variant);
+  }
+
+  .app-card .pill {
+    padding: 8px 16px;
+  }
+
+  .tagline {
+    margin: 0;
+    padding-top: 8px;
     text-align: center;
-    opacity: 0.7;
+    font-weight: 700;
+    font-size: 11px;
+    line-height: 16px;
+    letter-spacing: 1.1px;
+    text-transform: uppercase;
+    color: var(--outline);
+  }
+
+  .banner {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 0;
+    padding: 14px 16px;
+    border-radius: 16px;
+    background: var(--surface-container);
+    font-size: 14px;
+    line-height: 20px;
+    color: var(--on-surface-variant);
+  }
+
+  .banner svg {
+    flex-shrink: 0;
+  }
+
+  .banner strong {
+    font-weight: 600;
+    color: var(--on-surface);
+  }
+
+  .dimmed {
+    opacity: 0.5;
+  }
+
+  .closed {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .closed__title {
+    margin: 0;
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 24px;
+    line-height: 30px;
+    letter-spacing: -0.2px;
+  }
+
+  .closed__text {
+    margin: 0;
+    font-size: 15px;
+    line-height: 21px;
+    color: var(--on-surface-variant);
   }
 
   .fallback {
