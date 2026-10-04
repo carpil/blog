@@ -24,6 +24,7 @@ export type WebEvent =
   | "web_book_cta_clicked"
   | "web_signin_started"
   | "web_signed_in"
+  | "web_signin_failed"
   | "web_contact_submitted"
   | "web_ride_booked"
   | "web_booking_failed"
