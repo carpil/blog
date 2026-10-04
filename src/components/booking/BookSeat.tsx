@@ -67,9 +67,17 @@ function errorCode(error: unknown): string {
   return (error as { code?: string } | null)?.code ?? "unknown";
 }
 
+function errorDetail(error: unknown): string | undefined {
+  return (error as { message?: string } | null)?.message?.slice(0, 200);
+}
+
 // Once the same number is verified in the app, this web account is folded into the app
 // one and disabled. Its session has to go so the next phone sign-in lands on the app uid.
 const SESSION_GONE = new Set(["account_merged", "auth/user-disabled", "auth/user-token-expired"]);
+// Error 39 is Firebase holding back SMS to one number after too many attempts or poor
+// carrier delivery; other numbers keep working.
+const PHONE_BLOCKED = new Set(["auth/error-code:-39"]);
+const BROWSER_UNVERIFIED = new Set(["auth/captcha-check-failed", "auth/invalid-app-credential"]);
 
 export default function BookSeat({ rideId, driverFirstName, driverWhatsapp, whatsappMessage, initialFreeSeats }: Props) {
   const [step, setStep] = useState<Step>("idle");
@@ -144,8 +152,10 @@ export default function BookSeat({ rideId, driverFirstName, driverWhatsapp, what
     fail(`Algo salió mal. Probá de nuevo o escribile a ${driverFirstName} por WhatsApp.`, reason);
   };
 
-  const handleAuthError = (error: unknown) => {
+  const handleAuthError = (error: unknown, method: Method) => {
     const reason = errorCode(error);
+    track("web_signin_failed", { ride_id: rideId, method, reason, detail: errorDetail(error) });
+    console.warn("Sign-in failed", reason, error);
     if (reason === "auth/popup-closed-by-user" || reason === "auth/cancelled-popup-request") {
       setStep("choose");
       return;
@@ -162,6 +172,18 @@ export default function BookSeat({ rideId, driverFirstName, driverWhatsapp, what
     }
     if (reason === "auth/too-many-requests") {
       fail(`Hubo demasiados intentos. Esperá unos minutos o escribile a ${driverFirstName} por WhatsApp.`, reason);
+      return;
+    }
+    if (PHONE_BLOCKED.has(reason)) {
+      fail("No pudimos mandar el código a ese número. Probá más tarde o entrá con Google.", reason);
+      return;
+    }
+    if (reason === "auth/quota-exceeded") {
+      fail("No pudimos mandar el código. Probá más tarde o entrá con Google.", reason);
+      return;
+    }
+    if (BROWSER_UNVERIFIED.has(reason)) {
+      fail("No pudimos verificarte. Recargá la página y probá de nuevo.", reason);
       return;
     }
     fail(`No pudimos iniciar sesión. Probá de nuevo o escribile a ${driverFirstName} por WhatsApp.`, reason);
@@ -212,7 +234,7 @@ export default function BookSeat({ rideId, driverFirstName, driverWhatsapp, what
           }
           return continueAs(result.user, pending.method);
         })
-        .catch(handleAuthError);
+        .catch((error: unknown) => handleAuthError(error, pending.method));
     }
     return unsubscribe;
   }, []);
@@ -275,14 +297,14 @@ export default function BookSeat({ rideId, driverFirstName, driverWhatsapp, what
     const provider = new GoogleAuthProvider();
     if (canUseRedirect()) {
       writePending({ rideId, method: "google" });
-      await signInWithRedirect(auth, provider).catch(handleAuthError);
+      await signInWithRedirect(auth, provider).catch((error: unknown) => handleAuthError(error, "google"));
       return;
     }
     try {
       const result = await signInWithPopup(auth, provider);
       await continueAs(result.user, "google");
     } catch (error) {
-      handleAuthError(error);
+      handleAuthError(error, "google");
     }
   };
 
@@ -306,7 +328,7 @@ export default function BookSeat({ rideId, driverFirstName, driverWhatsapp, what
     } catch (error) {
       verifier.current?.clear();
       verifier.current = null;
-      handleAuthError(error);
+      handleAuthError(error, "phone");
     }
   };
 
@@ -326,7 +348,7 @@ export default function BookSeat({ rideId, driverFirstName, driverWhatsapp, what
       const result = await confirmation.current.confirm(code.trim());
       await continueAs(result.user, "phone");
     } catch (error) {
-      handleAuthError(error);
+      handleAuthError(error, "phone");
     }
   };
 
