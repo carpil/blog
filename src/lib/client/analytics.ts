@@ -30,7 +30,9 @@ export type WebEvent =
   | "web_booking_failed"
   | "web_booking_cancelled"
   | "web_session_reset"
-  | "web_whatsapp_intent";
+  | "web_whatsapp_clicked"
+  | "web_whatsapp_intent"
+  | "web_share_clicked";
 
 export function track(event: WebEvent, properties: Record<string, unknown> = {}): void {
   void posthog().then((ph) => ph?.capture(event, properties));
@@ -40,9 +42,4 @@ export function track(event: WebEvent, properties: Record<string, unknown> = {})
 // ride_joined_server line up in one person.
 export function identify(uid: string): void {
   void posthog().then((ph) => ph?.identify(uid));
-}
-
-export async function anonymousId(): Promise<string | undefined> {
-  const ph = await posthog();
-  return ph?.get_distinct_id() ?? undefined;
 }

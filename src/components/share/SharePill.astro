@@ -1,0 +1,98 @@
+---
+interface Props {
+  label: string;
+  title: string;
+  text: string;
+  url: string;
+}
+
+const { label, title, text, url } = Astro.props;
+---
+
+<!-- One button: the phone's own share sheet, or copying the link where there is none. -->
+<div class="pill-share">
+  <button type="button" class="pill-share__button" data-share-pill data-title={title} data-text={text} data-url={url}>
+    {label}
+  </button>
+  <p class="pill-share__toast" role="status" aria-live="polite"></p>
+</div>
+
+<script>
+  import { track } from "../../lib/client/analytics";
+
+  document.querySelectorAll<HTMLButtonElement>("[data-share-pill]").forEach((button) => {
+    const { title = "", text = "", url = "" } = button.dataset;
+    const toast = button.parentElement?.querySelector<HTMLElement>(".pill-share__toast");
+    let timer = 0;
+
+    const showToast = (message: string) => {
+      if (!toast) return;
+      toast.textContent = message;
+      toast.classList.add("is-visible");
+      window.clearTimeout(timer);
+      timer = window.setTimeout(() => toast.classList.remove("is-visible"), 2600);
+    };
+
+    button.addEventListener("click", async () => {
+      const native = typeof navigator.share === "function";
+      track("web_share_clicked", { channel: native ? "mas" : "copiar", url, page: window.location.pathname });
+      if (native) {
+        try {
+          await navigator.share({ title, text, url });
+        } catch {
+          // El usuario cerró la hoja de compartir.
+        }
+        return;
+      }
+      try {
+        await navigator.clipboard.writeText(url);
+        showToast("Enlace copiado");
+      } catch {
+        showToast("No pudimos copiar el enlace");
+      }
+    });
+  });
+</script>
+
+<style>
+  .pill-share {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 8px;
+  }
+
+  .pill-share__button {
+    width: 100%;
+    padding: 14px;
+    border-radius: 9999px;
+    background: var(--surface-container-high);
+    border: 1px solid var(--border-ghost);
+    color: var(--primary);
+    font-family: var(--font-body);
+    font-weight: 600;
+    font-size: 15px;
+    line-height: 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: transform 150ms ease;
+  }
+
+  .pill-share__button:active {
+    transform: scale(0.97);
+  }
+
+  .pill-share__toast {
+    margin: 0;
+    min-height: 16px;
+    text-align: center;
+    font-size: 12px;
+    color: var(--primary);
+    opacity: 0;
+    transition: opacity 200ms ease;
+  }
+
+  .pill-share__toast.is-visible {
+    opacity: 1;
+  }
+</style>

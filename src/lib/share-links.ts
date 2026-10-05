@@ -16,8 +16,9 @@ export function shareUrl(variant: ShareVariant, id: string): string {
   return `${SITE_URL}/${variant}/${id}`;
 }
 
+// The link goes on its own line under the text, where WhatsApp builds the preview from it.
 export function whatsappShareUrl(text: string, url: string): string {
-  return `https://wa.me/?text=${encodeURIComponent(`${text} ${url}`)}`;
+  return `https://wa.me/?text=${encodeURIComponent(`${text}\n${url}`)}`;
 }
 
 export function facebookShareUrl(url: string): string {

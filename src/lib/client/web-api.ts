@@ -60,15 +60,3 @@ export function joinRideFromWeb(token: string, rideId: string) {
 export function leaveRide(token: string, rideId: string) {
   return request<{ message: string }>(`/rides/${encodeURIComponent(rideId)}/leave`, { method: "POST", token });
 }
-
-export interface ContactIntentInput {
-  rideId?: string;
-  driverSlug?: string;
-  phoneNumber: string;
-  name?: string;
-  anonymousId?: string;
-}
-
-export function createContactIntent(input: ContactIntentInput) {
-  return request<{ id: string }>("/public/contact-intents", { method: "POST", body: input });
-}
