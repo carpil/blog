@@ -43,6 +43,7 @@ export const GET: APIRoute = async ({ params }) => {
             photo: passengerPhotos[index] ?? null,
           })),
           freeSeats: state === "open" ? freeSeats(ride) : 0,
+          takenLabel: `${ride.passengers.length} de ${ride.availableSeats} tomados`,
         },
       }),
     );
