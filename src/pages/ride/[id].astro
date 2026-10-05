@@ -133,7 +133,6 @@ const hasOthers = sameRoute !== null || otherRides.length > 0;
               <WhatsAppLead
                 client:visible
                 rideId={ride.id}
-                driverFirstName={driver.firstName}
                 whatsapp={driver.whatsapp}
                 message={rideWhatsappMessage(driver.firstName, ride)}
                 label="Prefiero coordinar por WhatsApp"
@@ -265,7 +264,6 @@ const hasOthers = sameRoute !== null || otherRides.length > 0;
               <WhatsAppLead
                 client:visible
                 rideId={ride.id}
-                driverFirstName={driver.firstName}
                 whatsapp={driver.whatsapp}
                 message={rideWhatsappMessage(driver.firstName, ride)}
                 label={`Escribirle a ${driver.firstName} por WhatsApp`}

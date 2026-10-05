@@ -43,8 +43,3 @@ export function track(event: WebEvent, properties: Record<string, unknown> = {})
 export function identify(uid: string): void {
   void posthog().then((ph) => ph?.identify(uid));
 }
-
-export async function anonymousId(): Promise<string | undefined> {
-  const ph = await posthog();
-  return ph?.get_distinct_id() ?? undefined;
-}

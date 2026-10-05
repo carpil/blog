@@ -72,18 +72,6 @@ const memberSince = driver?.memberSince
           </div>
         </section>
 
-        {driver.whatsapp && (
-          <WhatsAppLead
-            client:load
-            driverSlug={driver.slug ?? undefined}
-            driverFirstName={driver.firstName}
-            whatsapp={driver.whatsapp}
-            message={driverWhatsappMessage(driver.firstName)}
-            label={`Escribirle a ${driver.firstName} por WhatsApp`}
-            context="driver_page"
-          />
-        )}
-
         <section class="rides">
           <h2 class="rides__title">Próximos viajes</h2>
           {rides.length === 0 && (
@@ -104,6 +92,18 @@ const memberSince = driver?.memberSince
             );
           })}
         </section>
+
+        {/* Below the rides on purpose: booking one comes first, chatting is the fallback. */}
+        {driver.whatsapp && (
+          <WhatsAppLead
+            client:visible
+            driverSlug={driver.slug ?? undefined}
+            whatsapp={driver.whatsapp}
+            message={driverWhatsappMessage(driver.firstName)}
+            label={`Escribirle a ${driver.firstName} por WhatsApp`}
+            context="driver_page"
+          />
+        )}
 
         {driver.slug && (
           <ShareRow

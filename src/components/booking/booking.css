@@ -1,4 +1,4 @@
-/* Buttons and fields, shared with WhatsAppLead */
+/* Buttons and fields */
 
 .bk-button {
   display: flex;
@@ -51,11 +51,24 @@
   box-shadow: none;
 }
 
-.bk-button--secondary.bk-button--whatsapp {
+/* Third in line after Reservar: plain green text, no box, still a full-size tap target. */
+.bk-text-button {
+  display: block;
   padding: 14px;
-  background: var(--surface-container-high);
-  color: #7ee2a4;
+  text-align: center;
+  font-family: var(--font-body);
+  font-weight: 700;
   font-size: 15px;
+  line-height: 20px;
+  transition: opacity 150ms ease;
+}
+
+.bk-text-button:active {
+  opacity: 0.6;
+}
+
+.bk-text-button--whatsapp {
+  color: #7ee2a4;
 }
 
 .bk-button--danger {
@@ -100,33 +113,16 @@
   color: var(--on-surface-variant);
 }
 
-.bk-panel {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  padding: 20px;
-  border-radius: 24px;
-  background: var(--surface-container-low);
-  border: 1px solid var(--border-ghost);
-}
-
-.bk-panel__title,
 .bk-title {
   margin: 0;
   font-family: var(--font-display);
   font-weight: 700;
-  font-size: 20px;
-  line-height: 26px;
-  color: var(--on-surface);
-}
-
-.bk-title {
   font-size: 24px;
   line-height: 30px;
   letter-spacing: -0.2px;
+  color: var(--on-surface);
 }
 
-.bk-panel__hint,
 .bk-hint {
   margin: 0;
   font-size: 15px;
@@ -146,23 +142,6 @@
   line-height: 20px;
   letter-spacing: 0.1px;
   color: var(--on-surface);
-}
-
-.bk-input {
-  width: 100%;
-  min-height: 56px;
-  padding: 0 16px;
-  border-radius: 16px;
-  border: 1.5px solid rgba(201, 190, 255, 0.4);
-  background: var(--surface);
-  color: var(--on-surface);
-  font-family: var(--font-body);
-  font-size: 16px;
-}
-
-.bk-input:focus {
-  outline: none;
-  border-color: var(--primary);
 }
 
 .bk-input-group {

@@ -467,7 +467,6 @@ export default function BookSeat({
   const leadButton = driverWhatsapp && (
     <WhatsAppLead
       rideId={rideId}
-      driverFirstName={driverFirstName}
       whatsapp={driverWhatsapp}
       message={whatsappMessage}
       label="Prefiero coordinar por WhatsApp"
@@ -794,8 +793,9 @@ export default function BookSeat({
               <a
                 className="bk-button bk-button--whatsapp"
                 href={whatsappChatUrl(driverWhatsapp, whatsappMessage)}
+                target="_blank"
+                rel="noopener noreferrer"
                 onClick={() => {
-                  // No phone form here: the tap and the chat opening are the same moment.
                   const properties = { context: "booked", ride_id: rideId, driver_slug: driverSlug };
                   track("web_whatsapp_clicked", properties);
                   track("web_whatsapp_intent", properties);
