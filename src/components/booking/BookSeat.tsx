@@ -86,6 +86,18 @@ function signInMethod(user: User): Method | null {
   return null;
 }
 
+// The driver page's Reservar links here with ?reservar=1 so the sign-in sheet opens
+// on arrival. Read once and dropped from the URL, so a reload doesn't reopen it.
+const AUTO_START_PARAM = "reservar";
+
+function takeAutoStart(): boolean {
+  const url = new URL(window.location.href);
+  if (!url.searchParams.has(AUTO_START_PARAM)) return false;
+  url.searchParams.delete(AUTO_START_PARAM);
+  window.history.replaceState(window.history.state, "", url);
+  return true;
+}
+
 function errorCode(error: unknown): string {
   if (error instanceof ApiError) return error.code;
   return (error as { code?: string } | null)?.code ?? "unknown";
@@ -260,6 +272,14 @@ export default function BookSeat({
     const auth = firebaseAuth();
     const unsubscribe = onAuthStateChanged(auth, setUser);
     const pending = readPending();
+    if (pending?.rideId !== rideId && takeAutoStart()) {
+      // Waits for Firebase to restore the session, so someone already signed in books
+      // straight away instead of being asked to sign in again.
+      const stop = onAuthStateChanged(auth, (current) => {
+        stop();
+        begin(current, "driver_page");
+      });
+    }
     if (pending?.rideId === rideId) {
       writePending(null);
       setStep("working");
@@ -322,14 +342,16 @@ export default function BookSeat({
     setStep((current) => (current === "done" || current === "contact" ? "idle" : current));
   }, [user]);
 
-  const start = () => {
-    track("web_book_cta_clicked", { ride_id: rideId, signed_in: user !== null });
-    if (user) {
-      void continueAs(user, null);
+  const begin = (current: User | null, source: "ride_page" | "driver_page") => {
+    track("web_book_cta_clicked", { ride_id: rideId, signed_in: current !== null, source });
+    if (current) {
+      void continueAs(current, null);
       return;
     }
     setStep(EMBEDDED_BROWSER.test(navigator.userAgent) ? "phone" : "choose");
   };
+
+  const start = () => begin(user, "ride_page");
 
   const signInWithGoogle = async () => {
     track("web_signin_started", { method: "google", ride_id: rideId });

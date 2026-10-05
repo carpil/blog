@@ -1,0 +1,327 @@
+---
+import Face from "../ride/Face";
+import { formatPrice, freeSeats, leavesInLabel, seatsShortLabel, splitTime } from "../../lib/format";
+import type { Ride } from "../../types/ride";
+
+interface Props {
+  ride: Ride;
+}
+
+const { ride } = Astro.props;
+
+const MAX_DOTS = 6;
+const free = freeSeats(ride);
+const taken = ride.passengers.length;
+const open = free > 0;
+const { time, period } = splitTime(ride.departureDate);
+const leaves = leavesInLabel(ride.departureDate);
+const seats = Array.from({ length: Math.min(ride.availableSeats, MAX_DOTS) }, (_, index) => ride.passengers[index] ?? null);
+const takenLabel = open && taken === 0 ? "Sé el primero" : `${taken} de ${ride.availableSeats} tomados`;
+---
+
+<!-- A ride leaving today: time first, big, with Reservar right on the card. -->
+<article class:list={["today", { "today--full": !open }]}>
+  <a class="today__link" href={`/ride/${ride.id}`} aria-label={`Ver el viaje de las ${time} ${period}`}></a>
+
+  <div class="today__top">
+    <span class="today__leaves">{leaves ?? ""}</span>
+    {open && (
+      <span class="today__seats">
+        <span class="today__seats-dot" aria-hidden="true"></span>
+        {seatsShortLabel(free, taken)}
+      </span>
+    )}
+  </div>
+
+  <div class="today__main">
+    <p class="today__time">
+      <span class="today__clock">{time}</span>
+      <span class="today__period">{period}</span>
+    </p>
+    <div class="today__price">
+      <p class="today__amount">{formatPrice(ride.price)}</p>
+      <p class="today__per">por campo</p>
+    </div>
+  </div>
+
+  <span class="today__divider" aria-hidden="true"></span>
+
+  <div class="today__route">
+    <span class="dot dot--origin" aria-hidden="true"><span></span></span>
+    <p class="today__place">{ride.origin?.name.primary ?? "Origen"}</p>
+    <span class="today__connector" aria-hidden="true"></span>
+    <p class="today__meet">{ride.meetingPoint ? `Sale de ${ride.meetingPoint.name.primary}` : ""}</p>
+    <span class="dot dot--destination" aria-hidden="true"></span>
+    <p class="today__place">{ride.destination?.name.primary ?? "Destino"}</p>
+  </div>
+
+  <div class="today__foot">
+    <div class="today__taken">
+      <span class="today__dots" aria-hidden="true">
+        {seats.map((passenger, index) =>
+          passenger ? (
+            <span class="today__dot" style={`z-index:${seats.length - index}`}>
+              <Face name={passenger.name} photo={passenger.profilePicture} size={24} index={index} />
+            </span>
+          ) : (
+            <span class="today__dot today__dot--free" />
+          ),
+        )}
+      </span>
+      <span class="today__taken-label">{open ? takenLabel : "Sin cupos"}</span>
+    </div>
+    {open && (
+      <a class="today__cta" href={`/ride/${ride.id}?reservar=1`}>
+        Reservar
+      </a>
+    )}
+  </div>
+</article>
+
+<style>
+  .today {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding: 18px 20px;
+    border-radius: 24px;
+    background: var(--surface-container-low);
+    border: 1px solid var(--border-strong);
+    box-shadow: var(--shadow-lume);
+    transition: opacity 150ms ease;
+  }
+
+  .today:has(.today__link:active) {
+    opacity: 0.85;
+  }
+
+  .today--full {
+    opacity: 0.5;
+  }
+
+  .today p {
+    margin: 0;
+  }
+
+  /* The whole card opens the ride; Reservar sits above this layer and books instead. */
+  .today__link {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    border-radius: inherit;
+  }
+
+  .today__top,
+  .today__main,
+  .today__foot {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .today__top,
+  .today__foot {
+    align-items: center;
+  }
+
+  .today__main {
+    align-items: flex-end;
+  }
+
+  .today__leaves,
+  .today__seats {
+    font-weight: 700;
+    font-size: 11px;
+    line-height: 16px;
+    letter-spacing: 1.1px;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .today__leaves {
+    color: var(--on-surface-variant);
+  }
+
+  .today__seats {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+    padding: 5px 10px;
+    border-radius: 9999px;
+    background: rgba(255, 182, 145, 0.16);
+    color: var(--tertiary);
+  }
+
+  .today__seats-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 9999px;
+    background: var(--tertiary);
+  }
+
+  .today__time {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    font-family: var(--font-display);
+  }
+
+  .today__clock {
+    font-weight: 700;
+    font-size: 44px;
+    line-height: 1;
+    letter-spacing: -1.6px;
+  }
+
+  .today__period {
+    font-weight: 600;
+    font-size: 17px;
+    color: var(--on-surface-variant);
+  }
+
+  .today__price {
+    text-align: right;
+  }
+
+  .today__amount {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 22px;
+    line-height: 1;
+    letter-spacing: -0.3px;
+    color: var(--primary);
+  }
+
+  .today__per {
+    margin-top: 4px !important;
+    font-weight: 500;
+    font-size: 12px;
+    line-height: 16px;
+    color: var(--on-surface-variant);
+  }
+
+  .today__divider {
+    height: 1px;
+    background: var(--border-strong);
+  }
+
+  .today__route {
+    display: grid;
+    grid-template-columns: 14px minmax(0, 1fr);
+    column-gap: 14px;
+    row-gap: 4px;
+    align-items: center;
+  }
+
+  .dot {
+    width: 14px;
+    height: 14px;
+    border-radius: 9999px;
+  }
+
+  .dot--origin {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid var(--primary-container);
+  }
+
+  .dot--origin span {
+    width: 5px;
+    height: 5px;
+    border-radius: 9999px;
+    background: var(--primary-container);
+  }
+
+  .dot--destination {
+    border: 2px solid var(--tertiary);
+  }
+
+  .today__place {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-weight: 600;
+    font-size: 16px;
+    line-height: 22px;
+  }
+
+  .today__connector {
+    justify-self: center;
+    width: 2px;
+    height: 14px;
+    background: rgba(108, 71, 255, 0.35);
+  }
+
+  .today__meet {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 12px;
+    line-height: 16px;
+    color: var(--outline);
+  }
+
+  .today__taken {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+  }
+
+  .today__dots {
+    display: flex;
+  }
+
+  .today__dot {
+    position: relative;
+    display: flex;
+  }
+
+  .today__dot + .today__dot {
+    margin-left: -8px;
+  }
+
+  .today__dot :global(.face) {
+    border: 2px solid var(--surface-container-low);
+    font-size: 9px !important;
+  }
+
+  .today__dot--free {
+    width: 24px;
+    height: 24px;
+    border-radius: 9999px;
+    border: 2px dashed rgba(147, 142, 162, 0.5);
+  }
+
+  .today__dot--free + .today__dot--free {
+    margin-left: -6px;
+  }
+
+  .today__taken-label {
+    white-space: nowrap;
+    font-weight: 500;
+    font-size: 13px;
+    color: var(--on-surface-variant);
+  }
+
+  .today__cta {
+    position: relative;
+    z-index: 2;
+    flex-shrink: 0;
+    padding: 10px 20px;
+    border-radius: 9999px;
+    background: var(--gradient-primary);
+    color: var(--on-primary-container);
+    font-weight: 600;
+    font-size: 14px;
+    line-height: 18px;
+    transition: transform 150ms ease;
+  }
+
+  .today__cta:active {
+    transform: scale(0.97);
+  }
+</style>

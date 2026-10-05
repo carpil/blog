@@ -106,3 +106,35 @@ export function departureWhen(iso: string, now: Date = new Date()): DepartureWhe
   const date = departure.toLocaleDateString(LOCALE, { day: "numeric", month: "long", timeZone: TIME_ZONE });
   return { day: `el ${date}`, soon };
 }
+
+// "2:00 p. m." → { time: "2:00", period: "p. m." }, for the big time-first cards.
+export function splitTime(iso: string): { time: string; period: string } {
+  const [time, ...period] = formatTime(iso).split(" ");
+  return { time, period: period.join(" ") };
+}
+
+// The ride's calendar day in Costa Rica, "2026-10-05", to group rides by day.
+export function dayKey(iso: string): string {
+  return new Date(iso).toLocaleDateString("en-CA", { timeZone: TIME_ZONE });
+}
+
+// "Lun 5 oct"
+export function formatDayLabel(iso: string): string {
+  const day = formatDateShort(iso).replace(",", "");
+  return `${day.charAt(0).toUpperCase()}${day.slice(1)}`;
+}
+
+// "Sale en 4 h" / "Sale en 25 min" for a ride later today; null once it's left.
+export function leavesInLabel(iso: string, now: Date = new Date()): string | null {
+  const msLeft = new Date(iso).getTime() - now.getTime();
+  if (msLeft <= 0) return null;
+  const minutes = Math.round(msLeft / 60_000);
+  return minutes < 60 ? `Sale en ${Math.max(1, minutes)} min` : `Sale en ${Math.floor(minutes / 60)} h`;
+}
+
+// Short seat count for the driver page: "Quedan 3", "Queda 1", "4 libres" (nobody yet), "Sin cupos".
+export function seatsShortLabel(free: number, taken: number): string {
+  if (free <= 0) return "Sin cupos";
+  if (taken === 0) return free === 1 ? "1 libre" : `${free} libres`;
+  return free === 1 ? "Queda 1" : `Quedan ${free}`;
+}

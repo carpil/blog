@@ -1,0 +1,133 @@
+---
+import { formatPrice, freeSeats, seatsShortLabel, splitTime } from "../../lib/format";
+import type { Ride } from "../../types/ride";
+
+interface Props {
+  ride: Ride;
+}
+
+const { ride } = Astro.props;
+
+const free = freeSeats(ride);
+const { time, period } = splitTime(ride.departureDate);
+---
+
+<!-- A ride from tomorrow on: one compact row, the whole row opens the ride. -->
+<a class:list={["row", { "row--full": free <= 0 }]} href={`/ride/${ride.id}`}>
+  <span class="row__time">
+    <span class="row__clock">{time}</span>
+    <span class="row__period">{period}</span>
+  </span>
+  <span class="row__route">
+    <span class="row__dot" aria-hidden="true"></span>
+    <span class="row__place">{ride.origin?.name.primary ?? "Origen"}</span>
+    <span class="row__dot row__dot--destination" aria-hidden="true"></span>
+    <span class="row__place">{ride.destination?.name.primary ?? "Destino"}</span>
+  </span>
+  <span class="row__end">
+    <span class="row__price">{formatPrice(ride.price)}</span>
+    <span class:list={["row__seats", { "row__seats--full": free <= 0 }]}>{seatsShortLabel(free, ride.passengers.length)}</span>
+  </span>
+</a>
+
+<style>
+  .row {
+    display: grid;
+    grid-template-columns: 66px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 16px;
+    border-radius: 20px;
+    background: var(--surface-container-low);
+    border: 1px solid var(--border-strong);
+    transition: opacity 150ms ease;
+  }
+
+  .row:active {
+    opacity: 0.85;
+  }
+
+  .row--full {
+    opacity: 0.5;
+  }
+
+  .row__time {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .row__clock {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 26px;
+    line-height: 1;
+    letter-spacing: -0.8px;
+  }
+
+  .row__period {
+    margin-top: 2px;
+    font-weight: 600;
+    font-size: 12px;
+    line-height: 16px;
+    color: var(--on-surface-variant);
+  }
+
+  .row__route {
+    display: grid;
+    grid-template-columns: 8px minmax(0, 1fr);
+    align-items: center;
+    column-gap: 10px;
+    row-gap: 2px;
+    min-width: 0;
+  }
+
+  .row__dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 9999px;
+    border: 2px solid var(--primary-container);
+  }
+
+  .row__dot--destination {
+    border-color: var(--tertiary);
+  }
+
+  .row__place {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-weight: 600;
+    font-size: 14px;
+    line-height: 20px;
+  }
+
+  .row__end {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 4px;
+  }
+
+  .row__price {
+    white-space: nowrap;
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 17px;
+    line-height: 1;
+    color: var(--primary);
+  }
+
+  .row__seats {
+    white-space: nowrap;
+    font-weight: 700;
+    font-size: 10px;
+    line-height: 14px;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    color: var(--tertiary);
+  }
+
+  .row__seats--full {
+    color: var(--outline);
+  }
+</style>

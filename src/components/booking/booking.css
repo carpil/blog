@@ -71,6 +71,23 @@
   color: #7ee2a4;
 }
 
+.bk-wa-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  border-radius: 9999px;
+  background: var(--surface-container-high);
+  color: #7ee2a4;
+  transition: transform 150ms ease;
+}
+
+.bk-wa-icon:active {
+  transform: scale(0.97);
+}
+
 .bk-button--danger {
   background: #ffb4ab;
   color: #690005;

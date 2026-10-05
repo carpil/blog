@@ -1,16 +1,18 @@
 ---
 import TrackView from "../components/booking/TrackView";
 import WhatsAppLead from "../components/booking/WhatsAppLead";
+import RideRow from "../components/driver/RideRow.astro";
+import TodayRideCard from "../components/driver/TodayRideCard.astro";
 import Face from "../components/ride/Face";
-import RideCard, { DRIVER_COLORS } from "../components/ride/RideCard";
+import { DRIVER_COLORS } from "../components/ride/RideCard";
 import NotFound from "../components/share/NotFound.astro";
-import ShareRow from "../components/share/ShareRow.astro";
+import SharePill from "../components/share/SharePill.astro";
 import ShareLayout from "../layouts/ShareLayout.astro";
 import { getDriverPage } from "../lib/api";
-import { freeSeats, seatsLeftLabel } from "../lib/format";
-import { rideCardProps } from "../lib/ride-card";
+import { dayKey, formatDayLabel } from "../lib/format";
 import { driverWhatsappMessage } from "../lib/ride-copy";
 import { driverUrl } from "../lib/share-links";
+import type { Ride } from "../types/ride";
 
 // Static routes (/ride, /privacy, /api…) win over this one, and the API refuses to
 // hand out a slug that collides with them.
@@ -29,9 +31,25 @@ const description = driver
   : "Este conductor no existe en Carpil.";
 const ogImage = driver ? new URL(`/api/og/driver/${driver.slug}.png`, Astro.url.origin).href : undefined;
 
-const memberSince = driver?.memberSince
-  ? new Date(driver.memberSince).toLocaleDateString("es-CR", { month: "long", year: "numeric", timeZone: "America/Costa_Rica" })
-  : null;
+// Today's rides go big with Reservar on the card; the rest are compact rows grouped by
+// day. Days are Costa Rica days. Full rides keep their place: they show demand.
+const now = new Date();
+const today = dayKey(now.toISOString());
+const tomorrow = dayKey(new Date(now.getTime() + 86_400_000).toISOString());
+const sorted = [...rides].sort((a, b) => a.departureDate.localeCompare(b.departureDate));
+const todayRides = sorted.filter((ride) => dayKey(ride.departureDate) === today);
+const laterDays: { label: string; rides: Ride[] }[] = [];
+for (const ride of sorted) {
+  const key = dayKey(ride.departureDate);
+  if (key <= today) continue;
+  const label = key === tomorrow ? `Mañana · ${formatDayLabel(ride.departureDate)}` : formatDayLabel(ride.departureDate);
+  const group = laterDays.at(-1);
+  if (group?.label === label) group.rides.push(ride);
+  else laterDays.push({ label, rides: [ride] });
+}
+
+// The app opens on this driver when installed; otherwise the link falls back to the store.
+const appLink = driver?.slug ? `carpil://driver/${driver.slug}` : null;
 ---
 
 <ShareLayout title={title} description={description} image={ogImage} index={driver !== null}>
@@ -44,14 +62,19 @@ const memberSince = driver?.memberSince
             <img class="brand__mark" src="/logo-carpil.png" alt="" width="32" height="32" />
             <span class="brand__name">Carpil</span>
           </a>
+          {appLink && (
+            <a class="app-pill" href={appLink} data-deep-link={appLink}>
+              Abrir en la app
+            </a>
+          )}
         </header>
 
         <section class="profile">
           <span class="profile__face">
-            <Face name={driver.name} photo={driver.profilePicture} size={80} colors={DRIVER_COLORS} />
+            <Face name={driver.name} photo={driver.profilePicture} size={64} colors={DRIVER_COLORS} />
             {driver.kycVerified && (
               <span class="profile__verified" aria-label="Verificado">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="#2f009b" aria-hidden="true">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="#2f009b" aria-hidden="true">
                   <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-2 16l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z" />
                 </svg>
               </span>
@@ -60,58 +83,63 @@ const memberSince = driver?.memberSince
           <div class="profile__text">
             <h1 class="profile__name">{driver.name}</h1>
             {driver.averageRating != null && driver.ratingsCount > 0 && (
-              <p class="profile__meta profile__rating">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="#ffb691" aria-hidden="true">
+              <p class="profile__rating">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="#ffb691" aria-hidden="true">
                   <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
                 </svg>
                 {driver.averageRating.toFixed(1)} · {driver.ratingsCount}{" "}
                 {driver.ratingsCount === 1 ? "calificación" : "calificaciones"}
               </p>
             )}
-            {memberSince && <p class="profile__meta">Conductor desde {memberSince}</p>}
           </div>
-        </section>
-
-        <section class="rides">
-          <h2 class="rides__title">Próximos viajes</h2>
-          {rides.length === 0 && (
-            <p class="rides__empty">
-              {driver.firstName} no tiene viajes publicados por ahora. Escribile por WhatsApp para saber cuándo sale.
-            </p>
+          {driver.whatsapp && (
+            <WhatsAppLead
+              client:visible
+              driverSlug={driver.slug ?? undefined}
+              whatsapp={driver.whatsapp}
+              message={driverWhatsappMessage(driver.firstName)}
+              label={`Escribirle a ${driver.firstName} por WhatsApp`}
+              context="driver_page"
+              variant="icon"
+            />
           )}
-          {rides.map((ride) => {
-            const seats = freeSeats(ride);
-            return (
-              <RideCard
-                {...rideCardProps(ride, driver)}
-                note={seatsLeftLabel(seats)}
-                noteTone={seats > 0 ? "warm" : "muted"}
-                cta={seats > 0 ? "Reservar" : undefined}
-                href={`/ride/${ride.id}`}
-              />
-            );
-          })}
         </section>
 
-        {/* Below the rides on purpose: booking one comes first, chatting is the fallback. */}
-        {driver.whatsapp && (
-          <WhatsAppLead
-            client:visible
-            driverSlug={driver.slug ?? undefined}
-            whatsapp={driver.whatsapp}
-            message={driverWhatsappMessage(driver.firstName)}
-            label={`Escribirle a ${driver.firstName} por WhatsApp`}
-            context="driver_page"
-          />
+        <h2 class="rides-title">Próximos viajes</h2>
+
+        {rides.length === 0 && (
+          <p class="rides-empty">
+            {driver.firstName} no tiene viajes publicados por ahora. Escribile por WhatsApp para saber cuándo sale.
+          </p>
         )}
 
+        {todayRides.length > 0 && (
+          <>
+            <p class="day day--today">
+              <span class="day__dot" aria-hidden="true"></span>
+              Hoy · {formatDayLabel(todayRides[0].departureDate)}
+            </p>
+            {todayRides.map((ride) => (
+              <TodayRideCard ride={ride} />
+            ))}
+          </>
+        )}
+
+        {laterDays.map((group) => (
+          <section class="later">
+            <p class="day">{group.label}</p>
+            {group.rides.map((ride) => (
+              <RideRow ride={ride} />
+            ))}
+          </section>
+        ))}
+
         {driver.slug && (
-          <ShareRow
-            label={`Compartí los viajes de ${driver.firstName}`}
-            text={`Viajes de ${driver.firstName} en Carpil:`}
+          <SharePill
+            label={`Compartir los viajes de ${driver.firstName}`}
             title={title}
+            text={`Viajes de ${driver.firstName} en Carpil:`}
             url={driverUrl(driver.slug)}
-            native={false}
           />
         )}
       </div>
@@ -123,15 +151,27 @@ const memberSince = driver?.memberSince
   }
 </ShareLayout>
 
+<script>
+  import { wireDeepLinks } from "../lib/client/deep-link";
+
+  wireDeepLinks();
+</script>
+
 <style>
   .page {
     display: grid;
     grid-template-columns: minmax(0, 1fr);
     align-content: start;
-    gap: 20px;
+    gap: 16px;
     max-width: 480px;
     margin: 0 auto;
-    padding: 16px 20px 40px;
+    padding: 8px 20px 40px;
+  }
+
+  .nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
   }
 
   .brand {
@@ -154,39 +194,49 @@ const memberSince = driver?.memberSince
     letter-spacing: -0.8px;
   }
 
+  .app-pill {
+    flex-shrink: 0;
+    padding: 8px 14px;
+    border-radius: 9999px;
+    background: var(--surface-container-high);
+    color: var(--primary);
+    font-weight: 600;
+    font-size: 13px;
+  }
+
   .profile {
     display: flex;
     align-items: center;
-    gap: 16px;
+    gap: 14px;
   }
 
   .profile__face {
     position: relative;
     flex-shrink: 0;
-    width: 80px;
-    height: 80px;
+    width: 64px;
+    height: 64px;
   }
 
   .profile__face :global(.face) {
-    font-size: 26px !important;
+    font-size: 22px !important;
   }
 
   .profile__verified {
     position: absolute;
-    right: 0;
-    bottom: 0;
+    right: -2px;
+    bottom: -2px;
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 26px;
-    height: 26px;
-    box-sizing: border-box;
+    width: 22px;
+    height: 22px;
     border-radius: 9999px;
     background: var(--primary);
     border: 3px solid var(--surface);
   }
 
   .profile__text {
+    flex: 1;
     min-width: 0;
   }
 
@@ -194,41 +244,31 @@ const memberSince = driver?.memberSince
     margin: 0;
     font-family: var(--font-display);
     font-weight: 800;
-    font-size: 26px;
-    line-height: 32px;
-    letter-spacing: -0.6px;
-  }
-
-  .profile__meta {
-    margin: 0;
-    font-size: 14px;
-    line-height: 20px;
-    color: var(--on-surface-variant);
+    font-size: 24px;
+    line-height: 30px;
+    letter-spacing: -0.5px;
   }
 
   .profile__rating {
     display: flex;
     align-items: center;
     gap: 4px;
-    margin-top: 4px;
-  }
-
-  .rides {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-  }
-
-  .rides__title {
     margin: 0;
+    font-size: 13px;
+    line-height: 18px;
+    color: var(--on-surface-variant);
+  }
+
+  .rides-title {
+    margin: 4px 0 0;
     font-family: var(--font-display);
     font-weight: 700;
-    font-size: 32px;
-    line-height: 38px;
+    font-size: 26px;
+    line-height: 32px;
     letter-spacing: -0.4px;
   }
 
-  .rides__empty {
+  .rides-empty {
     margin: 0;
     padding: 20px;
     border-radius: 20px;
@@ -237,6 +277,38 @@ const memberSince = driver?.memberSince
     font-size: 15px;
     line-height: 21px;
     color: var(--on-surface-variant);
+  }
+
+  .day {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    padding: 0 4px;
+    font-weight: 700;
+    font-size: 11px;
+    line-height: 16px;
+    letter-spacing: 1.1px;
+    text-transform: uppercase;
+    color: var(--on-surface-variant);
+  }
+
+  .day--today {
+    color: var(--on-surface);
+  }
+
+  .day__dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 9999px;
+    background: var(--tertiary);
+  }
+
+  .later {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 8px;
   }
 
   .fallback {
