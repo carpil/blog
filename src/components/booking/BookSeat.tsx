@@ -77,6 +77,15 @@ function writePending(pending: PendingBooking | null): void {
   }
 }
 
+// How the account signs in, read from Firebase rather than from this visit, so a booking
+// by someone who was already signed in still says whether it came through Google or phone.
+function signInMethod(user: User): Method | null {
+  const providers = user.providerData.map((provider) => provider.providerId);
+  if (providers.includes("phone")) return "phone";
+  if (providers.includes("google.com")) return "google";
+  return null;
+}
+
 function errorCode(error: unknown): string {
   if (error instanceof ApiError) return error.code;
   return (error as { code?: string } | null)?.code ?? "unknown";
@@ -221,7 +230,7 @@ export default function BookSeat({
     setStep("working");
     try {
       await joinRideFromWeb(await signedIn.getIdToken(), rideId);
-      track("web_ride_booked", { ride_id: rideId });
+      track("web_ride_booked", { ride_id: rideId, method: signInMethod(signedIn) });
       setStep("done");
     } catch (error) {
       handleBookingError(error);
@@ -672,7 +681,7 @@ export default function BookSeat({
                     <input
                       className="bk-input-group__input bk-input-group__input--text"
                       autoComplete="name"
-                      placeholder="Ej: Doña Marta"
+                      placeholder="Tu nombre"
                       value={name}
                       onChange={(event) => setName(event.target.value)}
                     />
@@ -782,7 +791,16 @@ export default function BookSeat({
             <RideCard {...card} passengers={myPassengers} note="Vos vas en este viaje" />
 
             {driverWhatsapp && (
-              <a className="bk-button bk-button--whatsapp" href={whatsappChatUrl(driverWhatsapp, whatsappMessage)}>
+              <a
+                className="bk-button bk-button--whatsapp"
+                href={whatsappChatUrl(driverWhatsapp, whatsappMessage)}
+                onClick={() => {
+                  // No phone form here: the tap and the chat opening are the same moment.
+                  const properties = { context: "booked", ride_id: rideId, driver_slug: driverSlug };
+                  track("web_whatsapp_clicked", properties);
+                  track("web_whatsapp_intent", properties);
+                }}
+              >
                 Escribirle a {driverFirstName}
               </a>
             )}

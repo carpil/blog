@@ -17,6 +17,8 @@ interface Props {
 const { label, text, url, title, storyImage, native = true } = Astro.props;
 
 interface ShareAction {
+  // Sent as `channel` on web_share_clicked.
+  channel: "whatsapp" | "facebook" | "instagram" | "historia" | "copiar" | "mas";
   icon: IconName;
   mobileLabel: string;
   desktopLabel: string | null;
@@ -25,18 +27,21 @@ interface ShareAction {
 }
 
 const whatsapp: ShareAction = {
+  channel: "whatsapp",
   icon: "message-circle",
   mobileLabel: "WhatsApp",
   desktopLabel: "WhatsApp",
   href: whatsappShareUrl(text, url),
 };
 const facebook: ShareAction = {
+  channel: "facebook",
   icon: "facebook",
   mobileLabel: "Facebook",
   desktopLabel: "Facebook",
   href: facebookShareUrl(url),
 };
 const copy: ShareAction = {
+  channel: "copiar",
   icon: "link",
   mobileLabel: "Copiar",
   desktopLabel: "Copiar enlace",
@@ -46,13 +51,13 @@ const copy: ShareAction = {
 const actions: ShareAction[] = storyImage
   ? [
       whatsapp,
-      { icon: "instagram", mobileLabel: "Historia", desktopLabel: "Imagen para historia", action: "story" },
+      { channel: "historia", icon: "instagram", mobileLabel: "Historia", desktopLabel: "Imagen para historia", action: "story" },
       facebook,
       copy,
     ]
-  : [whatsapp, facebook, { icon: "instagram", mobileLabel: "Instagram", desktopLabel: null, action: "copy" }, copy];
+  : [whatsapp, facebook, { channel: "instagram", icon: "instagram", mobileLabel: "Instagram", desktopLabel: null, action: "copy" }, copy];
 
-if (native) actions.push({ icon: "share", mobileLabel: "Más", desktopLabel: null, action: "native" });
+if (native) actions.push({ channel: "mas", icon: "share", mobileLabel: "Más", desktopLabel: null, action: "native" });
 ---
 
 <section
@@ -71,6 +76,7 @@ if (native) actions.push({ icon: "share", mobileLabel: "Más", desktopLabel: nul
         const Tag = action.href ? "a" : "button";
         return (
           <Tag
+            data-channel={action.channel}
             class:list={[
               "share__item",
               !action.desktopLabel && "share__item--mobile-only",
@@ -99,9 +105,18 @@ if (native) actions.push({ icon: "share", mobileLabel: "Más", desktopLabel: nul
 </section>
 
 <script>
+  import { track } from "../../lib/client/analytics";
+
   const root = document.querySelector<HTMLElement>("[data-share]");
 
   if (root) {
+    // Every share item counts its tap, links (WhatsApp, Facebook) and buttons alike.
+    root.querySelectorAll<HTMLElement>("[data-channel]").forEach((item) => {
+      item.addEventListener("click", () => {
+        track("web_share_clicked", { channel: item.dataset.channel, url: root.dataset.url, page: window.location.pathname });
+      });
+    });
+
     const url = root.dataset.url!;
     const text = root.dataset.text!;
     const title = root.dataset.title!;

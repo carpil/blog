@@ -5,7 +5,8 @@ import { createContactIntent } from "../../lib/client/web-api";
 import { whatsappChatUrl } from "../../lib/share-links";
 import "./booking.css";
 
-export type LeadContext = "ride" | "ride_closed" | "driver_page";
+// "booked" is the passenger writing to the driver from the confirmation, after reserving.
+export type LeadContext = "ride" | "ride_closed" | "driver_page" | "booked";
 
 interface Props {
   rideId?: string;
@@ -36,6 +37,13 @@ export default function WhatsAppLead({
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Counted on the tap, so the phone form in between shows up as its own drop-off
+  // against web_whatsapp_intent.
+  const openForm = () => {
+    track("web_whatsapp_clicked", { context, ride_id: rideId ?? null, driver_slug: driverSlug ?? null });
+    setOpen(true);
+  };
+
   const submit = async (event: FormEvent) => {
     event.preventDefault();
     if (!isLocalPhone(phone)) {
@@ -63,7 +71,7 @@ export default function WhatsAppLead({
 
   if (!open) {
     return (
-      <button type="button" className={`bk-button bk-button--${variant} bk-button--whatsapp`} onClick={() => setOpen(true)}>
+      <button type="button" className={`bk-button bk-button--${variant} bk-button--whatsapp`} onClick={openForm}>
         {label}
       </button>
     );
@@ -91,7 +99,7 @@ export default function WhatsAppLead({
         <input
           className="bk-input"
           autoComplete="name"
-          placeholder="Ej: Doña Marta"
+          placeholder="Tu nombre"
           value={name}
           onChange={(event) => setName(event.target.value)}
         />
